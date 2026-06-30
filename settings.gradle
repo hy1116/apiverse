@@ -1,0 +1,3 @@
+rootProject.name = 'apiverse'
+include 'apiverse-core'
+include 'apiverse-gateway'
