@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Docker ###
+docker/
+
+### front ###
+node_modules/
+dist/

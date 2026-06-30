@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
-import { MOCK_USER } from '../data/mockData.js'
+import client from '../api/client.js'
 
 function SunIcon() {
   return (
@@ -32,9 +32,15 @@ export default function LoginPage() {
     setError('')
     if (!form.email || !form.password) { setError('이메일과 비밀번호를 입력해주세요.'); return }
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 600))
-    login({ ...MOCK_USER, email: form.email })
-    navigate('/dashboard')
+    try {
+      const { data } = await client.post('/auth/login', { email: form.email, password: form.password })
+      login(data)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.detail ?? '이메일 또는 비밀번호가 올바르지 않습니다.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

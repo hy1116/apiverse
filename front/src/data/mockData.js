@@ -184,8 +184,3 @@ export const mockUsageData = [
   { date: '06/30', requests: 88, errors: 2 },
 ]
 
-export function generateSandboxKey() {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-  const random = Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-  return `apiverse_sandbox_${random}`
-}

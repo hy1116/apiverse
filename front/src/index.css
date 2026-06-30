@@ -5,9 +5,11 @@
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
+    font-family: 'Nanum Gothic', sans-serif;
   }
 
   body {
+    font-family: 'Nanum Gothic', sans-serif;
     @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-50;
     transition: background-color 200ms ease, color 200ms ease;
   }
@@ -22,4 +24,226 @@
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+/* ================================================================
+   Swagger UI — 폰트 + 다크모드 오버라이드
+   (.dark 클래스가 <html>에 붙는 Tailwind darkMode: 'class' 방식)
+   ================================================================ */
+
+/* 폰트 */
+.swagger-ui,
+.swagger-ui * {
+  font-family: 'Nanum Gothic', sans-serif !important;
+}
+
+/* 최상위 배경 */
+.dark .swagger-ui,
+.dark .swagger-ui .wrapper,
+.dark .swagger-ui .scheme-container {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 기본 텍스트 */
+.dark .swagger-ui,
+.dark .swagger-ui p,
+.dark .swagger-ui li,
+.dark .swagger-ui table thead tr th,
+.dark .swagger-ui .parameter__name,
+.dark .swagger-ui .parameter__type,
+.dark .swagger-ui .parameter__in,
+.dark .swagger-ui .col_header,
+.dark .swagger-ui label,
+.dark .swagger-ui .response-col_status,
+.dark .swagger-ui .response-col_description,
+.dark .swagger-ui .response-col_links {
+  color: #cbd5e1 !important;
+}
+
+/* 제목 / info 영역 */
+.dark .swagger-ui .info .title,
+.dark .swagger-ui .info h1,
+.dark .swagger-ui .info h2,
+.dark .swagger-ui .info h3 {
+  color: #f1f5f9 !important;
+}
+.dark .swagger-ui .info .description p,
+.dark .swagger-ui .info .description li {
+  color: #94a3b8 !important;
+}
+
+/* 서버 URL */
+.dark .swagger-ui .servers > label,
+.dark .swagger-ui .servers-title,
+.dark .swagger-ui .server-container .computed-url {
+  color: #cbd5e1 !important;
+}
+
+/* opblock (각 API 엔드포인트 카드) */
+.dark .swagger-ui .opblock {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+.dark .swagger-ui .opblock .opblock-summary {
+  border-color: #334155 !important;
+}
+.dark .swagger-ui .opblock .opblock-summary-description {
+  color: #cbd5e1 !important;
+}
+.dark .swagger-ui .opblock .opblock-summary-path,
+.dark .swagger-ui .opblock .opblock-summary-path__deprecated {
+  color: #e2e8f0 !important;
+}
+.dark .swagger-ui .opblock-description-wrapper p,
+.dark .swagger-ui .opblock-external-docs-wrapper p,
+.dark .swagger-ui .opblock-title_normal p {
+  color: #94a3b8 !important;
+}
+.dark .swagger-ui .opblock-body {
+  background: #0f172a !important;
+}
+
+/* opblock 색상 유지 (GET/POST/PUT/DELETE 배지) */
+.dark .swagger-ui .opblock.opblock-get    { border-color: #1d4ed8 !important; background: #1e293b !important; }
+.dark .swagger-ui .opblock.opblock-post   { border-color: #15803d !important; background: #1e293b !important; }
+.dark .swagger-ui .opblock.opblock-put    { border-color: #b45309 !important; background: #1e293b !important; }
+.dark .swagger-ui .opblock.opblock-delete { border-color: #be123c !important; background: #1e293b !important; }
+
+.dark .swagger-ui .opblock.opblock-get    .opblock-summary { background: rgba(29,78,216,0.1) !important; }
+.dark .swagger-ui .opblock.opblock-post   .opblock-summary { background: rgba(21,128,61,0.1) !important; }
+.dark .swagger-ui .opblock.opblock-put    .opblock-summary { background: rgba(180,83,9,0.1) !important; }
+.dark .swagger-ui .opblock.opblock-delete .opblock-summary { background: rgba(190,18,60,0.1) !important; }
+
+/* 파라미터 테이블 */
+.dark .swagger-ui .parameters-container,
+.dark .swagger-ui .opblock-section-header {
+  background: transparent !important;
+}
+.dark .swagger-ui .opblock-section-header h4,
+.dark .swagger-ui .opblock-section-header label {
+  color: #94a3b8 !important;
+}
+.dark .swagger-ui table.parameters tbody tr td {
+  border-color: #1e293b !important;
+  background: transparent !important;
+}
+
+/* 입력 필드 & 셀렉트 */
+.dark .swagger-ui input[type=text],
+.dark .swagger-ui input[type=email],
+.dark .swagger-ui input[type=password],
+.dark .swagger-ui input[type=search],
+.dark .swagger-ui input[type=number],
+.dark .swagger-ui textarea,
+.dark .swagger-ui select {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+.dark .swagger-ui select option {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+/* 응답 코드/예시 영역 */
+.dark .swagger-ui .responses-inner {
+  background: transparent !important;
+}
+.dark .swagger-ui .response-col_status .response-undocumented {
+  color: #64748b !important;
+}
+.dark .swagger-ui .highlight-code > .microlight,
+.dark .swagger-ui .microlight {
+  background: #0f172a !important;
+  color: #a5f3fc !important;
+}
+.dark .swagger-ui .model-example pre,
+.dark .swagger-ui .example pre {
+  background: #0f172a !important;
+  color: #a5f3fc !important;
+  border-color: #1e293b !important;
+}
+
+/* Models (스키마) 섹션 */
+.dark .swagger-ui section.models {
+  border-color: #334155 !important;
+  background: #1e293b !important;
+}
+.dark .swagger-ui section.models h4,
+.dark .swagger-ui section.models h5 {
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+.dark .swagger-ui .model-container {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+.dark .swagger-ui .model {
+  color: #cbd5e1 !important;
+}
+.dark .swagger-ui .model .property.primitive,
+.dark .swagger-ui .model span {
+  color: #94a3b8 !important;
+}
+.dark .swagger-ui .model-toggle::after {
+  filter: invert(1) !important;
+}
+
+/* 버튼 */
+.dark .swagger-ui .btn {
+  color: #e2e8f0 !important;
+  border-color: #475569 !important;
+  background: transparent !important;
+}
+.dark .swagger-ui .btn:hover {
+  background: #1e293b !important;
+}
+.dark .swagger-ui .btn.authorize {
+  border-color: #6366f1 !important;
+  color: #818cf8 !important;
+}
+.dark .swagger-ui .btn.authorize svg {
+  fill: #818cf8 !important;
+}
+.dark .swagger-ui .btn.execute {
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+  color: #fff !important;
+}
+
+/* Authorization 모달 */
+.dark .swagger-ui .dialog-ux .modal-ux {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+.dark .swagger-ui .dialog-ux .modal-ux-header {
+  border-color: #334155 !important;
+  background: #0f172a !important;
+}
+.dark .swagger-ui .dialog-ux .modal-ux-header h3 {
+  color: #f1f5f9 !important;
+}
+.dark .swagger-ui .dialog-ux .modal-ux-content p,
+.dark .swagger-ui .dialog-ux .modal-ux-content h4 {
+  color: #cbd5e1 !important;
+}
+
+/* 구분선 */
+.dark .swagger-ui .filter-container,
+.dark .swagger-ui .information-container {
+  border-color: #334155 !important;
+}
+
+/* 스크롤바 */
+.dark .swagger-ui ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark .swagger-ui ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.dark .swagger-ui ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
 }
