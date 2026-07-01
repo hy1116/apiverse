@@ -42,22 +42,32 @@ function StatCard({ label, value, sub, accent }) {
   )
 }
 
-function ApiKeyCard({ apiKey, onRevoke }) {
+function ApiKeyCard({ apiKey, onRevoke, onViewDetail }) {
   const [revealed, setRevealed] = useState(false)
   const masked = apiKey.apiKeyValue.slice(0, 22) + '••••••••••••'
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <p className="font-semibold text-gray-900 dark:text-white text-sm">{apiKey.apiProductName}</p>
+          <button
+            onClick={() => onViewDetail(apiKey.apiProductId)}
+            className="font-semibold text-gray-900 dark:text-white text-sm hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
+          >
+            {apiKey.apiProductName}
+          </button>
           <span className="inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Sandbox · 활성
           </span>
         </div>
-        <button onClick={() => onRevoke(apiKey.id)} className="text-xs text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
-          폐기
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => onViewDetail(apiKey.apiProductId)} className="text-xs text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">
+            상세보기
+          </button>
+          <button onClick={() => onRevoke(apiKey.id)} className="text-xs text-gray-400 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+            폐기
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 font-mono text-xs text-gray-700 dark:text-gray-300 mb-4">
@@ -222,7 +232,14 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {apiKeys.map((key) => <ApiKeyCard key={key.id} apiKey={key} onRevoke={handleRevoke} />)}
+              {apiKeys.map((key) => (
+                <ApiKeyCard
+                  key={key.id}
+                  apiKey={key}
+                  onRevoke={handleRevoke}
+                  onViewDetail={(productId) => navigate(`/marketplace/${productId}`)}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -239,18 +256,31 @@ export default function DashboardPage() {
               {unconnected.map((product) => (
                 <div key={product.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between group hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{product.name}</p>
+                    <button
+                      onClick={() => navigate(`/marketplace/${product.id}`)}
+                      className="text-sm font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
+                    >
+                      {product.name}
+                    </button>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                       {product.callsPerSec != null ? `${product.callsPerSec} req/s · ` : ''}무제한 쿼터
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleIssueKey(product.id)}
-                    disabled={issuingFor === product.id}
-                    className="shrink-0 px-3 py-1.5 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {issuingFor === product.id ? '발급 중...' : '즉시 발급'}
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => navigate(`/marketplace/${product.id}`)}
+                      className="px-3 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+                    >
+                      상세보기
+                    </button>
+                    <button
+                      onClick={() => handleIssueKey(product.id)}
+                      disabled={issuingFor === product.id}
+                      className="px-3 py-1.5 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {issuingFor === product.id ? '발급 중...' : '즉시 발급'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

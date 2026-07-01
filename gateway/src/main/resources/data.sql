@@ -44,11 +44,11 @@ VALUES (
 INSERT INTO users (email, password_hash, company_name, tier, created_at)
 VALUES (
   'dev@hypepia.com',
-  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lH51',
+  '$2a$10$D4ZntdHEJNHQLUhAmyMJKuCOS/1efCznwmdJG9FZtXTqmukYaoohe',
   'Hypepia Inc.',
   'FREE',
   '2026-06-01 00:00:00'
-) ON CONFLICT (email) DO NOTHING;
+) ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
 
 -- ============================================================
 -- api_keys  (mockApiKeys — dev 계정에 연결)
@@ -76,7 +76,7 @@ ON CONFLICT (api_key_value) DO NOTHING;
 -- NOT EXISTS 가드: 해당 날짜 데이터가 없을 때만 INSERT
 -- ============================================================
 
--- 2026-06-24: requests=45, errors=2
+-- D-6: requests=45, errors=2
 INSERT INTO billing_logs (api_key_value, request_path, http_method, response_status, client_ip, request_time)
 SELECT
     CASE WHEN n % 3 = 0 THEN 'apiverse_sandbox_z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4'
@@ -85,11 +85,11 @@ SELECT
     'GET',
     CASE WHEN n < 2 THEN 500 ELSE 200 END,
     '127.0.0.1',
-    '2026-06-24 09:00:00'::timestamp + (n * interval '18 minutes')
+    (CURRENT_DATE - 6) + interval '9 hours' + (n * interval '18 minutes')
 FROM generate_series(0, 44) n
-WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = '2026-06-24');
+WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = CURRENT_DATE - 6);
 
--- 2026-06-25: requests=92, errors=5
+-- D-5: requests=92, errors=5
 INSERT INTO billing_logs (api_key_value, request_path, http_method, response_status, client_ip, request_time)
 SELECT
     CASE WHEN n % 3 = 0 THEN 'apiverse_sandbox_z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4'
@@ -98,11 +98,11 @@ SELECT
     'GET',
     CASE WHEN n < 5 THEN 500 ELSE 200 END,
     '127.0.0.1',
-    '2026-06-25 09:00:00'::timestamp + (n * interval '6 minutes')
+    (CURRENT_DATE - 5) + interval '9 hours' + (n * interval '6 minutes')
 FROM generate_series(0, 91) n
-WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = '2026-06-25');
+WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = CURRENT_DATE - 5);
 
--- 2026-06-26: requests=78, errors=1
+-- D-4: requests=78, errors=1
 INSERT INTO billing_logs (api_key_value, request_path, http_method, response_status, client_ip, request_time)
 SELECT
     CASE WHEN n % 3 = 0 THEN 'apiverse_sandbox_z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4'
@@ -111,11 +111,11 @@ SELECT
     'GET',
     CASE WHEN n < 1 THEN 500 ELSE 200 END,
     '127.0.0.1',
-    '2026-06-26 09:00:00'::timestamp + (n * interval '7 minutes')
+    (CURRENT_DATE - 4) + interval '9 hours' + (n * interval '7 minutes')
 FROM generate_series(0, 77) n
-WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = '2026-06-26');
+WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = CURRENT_DATE - 4);
 
--- 2026-06-27: requests=134, errors=8
+-- D-3: requests=134, errors=8
 INSERT INTO billing_logs (api_key_value, request_path, http_method, response_status, client_ip, request_time)
 SELECT
     CASE WHEN n % 3 = 0 THEN 'apiverse_sandbox_z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4'
@@ -124,11 +124,11 @@ SELECT
     'GET',
     CASE WHEN n < 8 THEN 500 ELSE 200 END,
     '127.0.0.1',
-    '2026-06-27 09:00:00'::timestamp + (n * interval '4 minutes')
+    (CURRENT_DATE - 3) + interval '9 hours' + (n * interval '4 minutes')
 FROM generate_series(0, 133) n
-WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = '2026-06-27');
+WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = CURRENT_DATE - 3);
 
--- 2026-06-28: requests=61, errors=0
+-- D-2: requests=61, errors=0
 INSERT INTO billing_logs (api_key_value, request_path, http_method, response_status, client_ip, request_time)
 SELECT
     CASE WHEN n % 3 = 0 THEN 'apiverse_sandbox_z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4'
@@ -137,11 +137,11 @@ SELECT
     'GET',
     200,
     '127.0.0.1',
-    '2026-06-28 09:00:00'::timestamp + (n * interval '9 minutes')
+    (CURRENT_DATE - 2) + interval '9 hours' + (n * interval '9 minutes')
 FROM generate_series(0, 60) n
-WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = '2026-06-28');
+WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = CURRENT_DATE - 2);
 
--- 2026-06-29: requests=110, errors=3
+-- D-1: requests=110, errors=3
 INSERT INTO billing_logs (api_key_value, request_path, http_method, response_status, client_ip, request_time)
 SELECT
     CASE WHEN n % 3 = 0 THEN 'apiverse_sandbox_z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4'
@@ -150,11 +150,11 @@ SELECT
     'GET',
     CASE WHEN n < 3 THEN 500 ELSE 200 END,
     '127.0.0.1',
-    '2026-06-29 09:00:00'::timestamp + (n * interval '5 minutes')
+    (CURRENT_DATE - 1) + interval '9 hours' + (n * interval '5 minutes')
 FROM generate_series(0, 109) n
-WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = '2026-06-29');
+WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = CURRENT_DATE - 1);
 
--- 2026-06-30: requests=88, errors=2
+-- D-0 (오늘): requests=88, errors=2
 INSERT INTO billing_logs (api_key_value, request_path, http_method, response_status, client_ip, request_time)
 SELECT
     CASE WHEN n % 3 = 0 THEN 'apiverse_sandbox_z9y8x7w6v5u4t3s2r1q0p9o8n7m6l5k4'
@@ -163,6 +163,6 @@ SELECT
     'GET',
     CASE WHEN n < 2 THEN 500 ELSE 200 END,
     '127.0.0.1',
-    '2026-06-30 09:00:00'::timestamp + (n * interval '6 minutes')
+    CURRENT_DATE + interval '9 hours' + (n * interval '6 minutes')
 FROM generate_series(0, 87) n
-WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = '2026-06-30');
+WHERE NOT EXISTS (SELECT 1 FROM billing_logs WHERE request_time::date = CURRENT_DATE);
