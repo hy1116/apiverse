@@ -1,4 +1,4 @@
-package com.hypepia.apiverse.gateway.config;
+package com.hypepia.apiverse.gateway.proxy;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -30,7 +30,7 @@ public class SecurityConfig {
                         .pathMatchers("/api/auth/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/products/pending").authenticated()
                         .pathMatchers(HttpMethod.GET, "/api/products", "/api/products/*").permitAll()
-                        .pathMatchers("/api/usage/**").permitAll()
+                        .pathMatchers("/api/usage/**").authenticated()
                         .pathMatchers("/gateway/**").permitAll()  // API key auth handled in ProxyService
                         .anyExchange().authenticated()
                 )
