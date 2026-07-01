@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtWebFilter(jwtUtils), SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/auth/**").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/products/pending").authenticated()
                         .pathMatchers(HttpMethod.GET, "/api/products", "/api/products/*").permitAll()
                         .pathMatchers("/api/usage/**").permitAll()
                         .pathMatchers("/gateway/**").permitAll()  // API key auth handled in ProxyService

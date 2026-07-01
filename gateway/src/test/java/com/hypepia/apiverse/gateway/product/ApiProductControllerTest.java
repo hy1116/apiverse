@@ -4,6 +4,7 @@ import com.hypepia.apiverse.core.entity.ApiKey;
 import com.hypepia.apiverse.core.entity.ApiProduct;
 import com.hypepia.apiverse.core.repository.ApiKeyRepository;
 import com.hypepia.apiverse.core.repository.ApiProductRepository;
+import com.hypepia.apiverse.core.repository.UserRepository;
 import com.hypepia.apiverse.gateway.config.TestSecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,9 @@ class ApiProductControllerTest {
 
     @MockitoBean
     private ApiKeyRepository apiKeyRepository;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private static final ApiProduct WEATHER_API = ApiProduct.builder()
             .id(1L).name("기상청 날씨 API").description("날씨 데이터")

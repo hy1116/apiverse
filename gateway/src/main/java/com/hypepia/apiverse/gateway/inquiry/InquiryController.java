@@ -1,6 +1,5 @@
 package com.hypepia.apiverse.gateway.inquiry;
 
-import com.hypepia.apiverse.core.dto.InquiryRequest;
 import com.hypepia.apiverse.core.entity.Inquiry;
 import com.hypepia.apiverse.core.repository.InquiryRepository;
 import com.hypepia.apiverse.core.repository.UserRepository;
@@ -75,7 +74,7 @@ public class InquiryController {
 
     @PostMapping("/{id}/answer")
     public Mono<ResponseEntity<Inquiry>> answer(@PathVariable Long id,
-                                                @RequestBody com.hypepia.apiverse.core.dto.AnswerRequest req,
+                                                @RequestBody AnswerRequest req,
                                                 @AuthenticationPrincipal Mono<Long> principal) {
         return principal
                 .flatMap(uid -> userRepository.findById(uid)
@@ -94,5 +93,4 @@ public class InquiryController {
                             .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
                 });
     }
-
 }

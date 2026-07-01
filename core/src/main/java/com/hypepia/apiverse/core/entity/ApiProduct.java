@@ -11,7 +11,7 @@ import org.springframework.data.relational.core.mapping.Table;
 
 @Table("api_products")
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApiProduct {

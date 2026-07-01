@@ -42,19 +42,26 @@ public class ProxyService {
                     .body("X-API-KEY header is required"));
         }
 
+        String clientIp = resolveClientIp(exchange);
+
         return apiKeyRepository.findByApiKeyValue(apiKeyValue)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid API key")))
-                .flatMap(apiKey -> validateKey(apiKey, productId))
+                .flatMap(apiKey -> validateKey(apiKey, productId, clientIp))
                 .flatMap(apiKey -> apiProductRepository.findById(productId)
                         .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found")))
                         .flatMap(product -> rateLimiter.isAllowed(apiKeyValue, product.getCallsPerSec())
                                 .flatMap(allowed -> {
                                     if (!allowed) {
-                                        return Mono.<ResponseEntity<String>>just(
+                                        return Mono.just(
                                                 ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Rate limit exceeded"));
                                     }
-                                    return forward(exchange, productId, product.getBaseUrl(), apiKey)
-                                            .doOnNext(response -> writeBillingLog(exchange, apiKeyValue, response));
+                                    return forward(exchange, product.getBaseUrl(), apiKey)
+                                            .doOnNext(response -> {
+                                                writeBillingLog(exchange, apiKeyValue, response);
+                                                apiKeyRepository.incrementUsedQuota(apiKey.getId())
+                                                        .doOnError(e -> log.error("Failed to increment used_quota for key {}: {}", apiKey.getId(), e.getMessage()))
+                                                        .subscribe();
+                                            });
                                 })
                         )
                 )
@@ -62,12 +69,25 @@ public class ProxyService {
                         Mono.just(ResponseEntity.status(ex.getStatusCode()).body(ex.getReason())));
     }
 
-    private Mono<ApiKey> validateKey(ApiKey apiKey, Long productId) {
+    private String resolveClientIp(ServerWebExchange exchange) {
+        String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        InetSocketAddress remote = exchange.getRequest().getRemoteAddress();
+        return remote != null ? remote.getAddress().getHostAddress() : "unknown";
+    }
+
+    private Mono<ApiKey> validateKey(ApiKey apiKey, Long productId, String clientIp) {
         if (!Boolean.TRUE.equals(apiKey.getIsActive())) {
             return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "API key is inactive"));
         }
         if (!apiKey.getApiProductId().equals(productId)) {
             return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Key is not authorized for this product"));
+        }
+        String whiteListIp = apiKey.getWhiteListIp();
+        if (whiteListIp != null && !whiteListIp.isBlank() && !whiteListIp.equals(clientIp)) {
+            return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "IP not whitelisted"));
         }
         int quota = apiKey.getMonthlyQuota() != null ? apiKey.getMonthlyQuota() : -1;
         int used  = apiKey.getUsedQuota()   != null ? apiKey.getUsedQuota()   : 0;
@@ -77,8 +97,7 @@ public class ProxyService {
         return Mono.just(apiKey);
     }
 
-    private Mono<ResponseEntity<String>> forward(ServerWebExchange exchange, Long productId,
-                                                  String baseUrl, ApiKey apiKey) {
+    private Mono<ResponseEntity<String>> forward(ServerWebExchange exchange, String baseUrl, ApiKey apiKey) {
         ServerHttpRequest req = exchange.getRequest();
         String subPath   = req.getPath().value().replaceFirst("^/gateway/[^/]+", "");
         String rawQuery  = req.getURI().getRawQuery();
@@ -110,8 +129,7 @@ public class ProxyService {
 
     private void writeBillingLog(ServerWebExchange exchange, String apiKeyValue,
                                   ResponseEntity<String> response) {
-        InetSocketAddress remote = exchange.getRequest().getRemoteAddress();
-        String clientIp = remote != null ? remote.getAddress().getHostAddress() : "unknown";
+        String clientIp = resolveClientIp(exchange);
 
         BillingLog entry = BillingLog.builder()
                 .apiKeyValue(apiKeyValue)

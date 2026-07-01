@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import SwaggerUI from 'swagger-ui-react'
 import 'swagger-ui-react/swagger-ui.css'
 import Navbar from '../components/Navbar.jsx'
+import client from '../api/client.js'
 
 const CATEGORIES = ['Weather', 'Location', 'Finance', 'Tourism', 'Government', 'AI/ML', 'Communication', 'IoT', 'Other']
 const STEPS = ['스펙 URL 입력', '상품 정보 작성', '등록 완료']
@@ -157,7 +158,7 @@ function SpecUrlStep({ onSuccess }) {
   )
 }
 
-function ProductInfoStep({ spec, form, onFormChange, onSubmit, loading }) {
+function ProductInfoStep({ spec, form, onFormChange, onSubmit, loading, error }) {
   const [previewOpen, setPreviewOpen] = useState(false)
 
   return (
@@ -229,7 +230,13 @@ function ProductInfoStep({ spec, form, onFormChange, onSubmit, loading }) {
           </div>
         </div>
 
-        <div className="flex justify-end mt-6">
+        <div className="mt-6">
+          {error && (
+            <p className="mb-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
+              {error}
+            </p>
+          )}
+          <div className="flex justify-end">
           <button
             onClick={onSubmit}
             disabled={loading || !form.name || !form.baseUrl || !form.category}
@@ -237,6 +244,7 @@ function ProductInfoStep({ spec, form, onFormChange, onSubmit, loading }) {
           >
             {loading ? '등록 중...' : 'API 상품 등록'}
           </button>
+          </div>
         </div>
       </div>
     </div>
@@ -251,7 +259,7 @@ function SuccessStep({ form, navigate }) {
       </div>
       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">API 상품이 등록됐습니다!</h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-        <span className="font-semibold text-gray-900 dark:text-white">{form.name}</span>이 검토 후 마켓플레이스에 게시됩니다.
+        <span className="font-semibold text-gray-900 dark:text-white">{form.name}</span>이 등록됐습니다. 관리자 승인 후 마켓플레이스에 게시됩니다.
       </p>
 
       <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 text-left mb-8">
@@ -289,6 +297,7 @@ export default function RegisterApiPage() {
   const [spec, setSpec] = useState(null)
   const [form, setForm] = useState({ name: '', description: '', baseUrl: '', category: '', callsPerSec: 5, isPremium: false })
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   const handleSpecSuccess = ({ spec, form: autoForm }) => {
     setSpec(spec)
@@ -298,9 +307,23 @@ export default function RegisterApiPage() {
 
   const handleSubmit = async () => {
     setSubmitting(true)
-    await new Promise((r) => setTimeout(r, 1000))
-    setSubmitting(false)
-    setStep(3)
+    setSubmitError('')
+    try {
+      await client.post('/products', {
+        name: form.name,
+        description: form.description,
+        baseUrl: form.baseUrl,
+        category: form.category,
+        callsPerSec: form.callsPerSec,
+        isPremium: form.isPremium,
+        specJson: JSON.stringify(spec),
+      })
+      setStep(3)
+    } catch (err) {
+      setSubmitError(err.response?.data?.detail ?? '등록에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -323,7 +346,7 @@ export default function RegisterApiPage() {
         <StepIndicator current={step} />
 
         {step === 1 && <SpecUrlStep onSuccess={handleSpecSuccess} />}
-        {step === 2 && <ProductInfoStep spec={spec} form={form} onFormChange={(k, v) => setForm((p) => ({ ...p, [k]: v }))} onSubmit={handleSubmit} loading={submitting} />}
+        {step === 2 && <ProductInfoStep spec={spec} form={form} onFormChange={(k, v) => setForm((p) => ({ ...p, [k]: v }))} onSubmit={handleSubmit} loading={submitting} error={submitError} />}
         {step === 3 && <SuccessStep form={form} navigate={navigate} />}
       </div>
     </div>

@@ -5,6 +5,6 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
 
 public interface ApiProductRepository extends ReactiveCrudRepository<ApiProduct, Long> {
-    Flux<ApiProduct> findByIsActiveTrue();
     Flux<ApiProduct> findAllByIsActiveTrueOrderByIsPremiumAsc();
+    Flux<ApiProduct> findAllByIsActiveFalseOrderByIdDesc();
 }

@@ -36,7 +36,7 @@ function LandingNavbar() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50">
+    <nav className="bg-slate-50/90 dark:bg-gray-900/80 backdrop-blur-md border-b border-slate-200 dark:border-gray-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
@@ -80,7 +80,7 @@ function LandingNavbar() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-white dark:bg-gray-900 pt-20 pb-24">
+    <section className="relative overflow-hidden bg-slate-50 dark:bg-gray-900 pt-20 pb-24">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-indigo-100 dark:bg-indigo-900/20 rounded-full blur-3xl opacity-70" />
         <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-violet-100 dark:bg-violet-900/20 rounded-full blur-3xl opacity-60" />
@@ -93,7 +93,7 @@ function Hero() {
           <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">API 게이트웨이 플랫폼</span>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 leading-tight">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-800 dark:text-white mb-6 leading-tight">
           API 통합의{' '}
           <span className="bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
             새로운 기준
@@ -120,10 +120,10 @@ function Hero() {
 
 function ProductPreview() {
   return (
-    <section className="bg-white dark:bg-gray-900 py-20">
+    <section className="bg-slate-50 dark:bg-gray-900 py-20">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-3">
             모든 현황을 한눈에
           </h2>
           <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
@@ -163,12 +163,12 @@ function Stats() {
     { value: '무제한', label: 'Sandbox 체험' },
   ]
   return (
-    <div className="border-y border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">
+    <div className="border-y border-slate-200 dark:border-gray-800 bg-white dark:bg-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {items.map((item) => (
             <div key={item.label}>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{item.value}</p>
+              <p className="text-xl font-bold text-slate-800 dark:text-white">{item.value}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{item.label}</p>
             </div>
           ))}
@@ -183,7 +183,7 @@ function ApiCard({ product }) {
   const catKo = CATEGORY_KO[product.category] || product.category
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 flex flex-col hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200 group">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-slate-200 dark:border-gray-800 p-5 flex flex-col hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200 group">
       <div className="flex items-start justify-between mb-3">
         <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${catStyle}`}>
           {catKo}
@@ -195,7 +195,7 @@ function ApiCard({ product }) {
         )}
       </div>
 
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+      <h3 className="text-sm font-semibold text-slate-700 dark:text-white mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
         {product.name}
       </h3>
       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed flex-1 line-clamp-2">
@@ -219,10 +219,10 @@ function ApiCard({ product }) {
 
 function ApiSection({ products }) {
   return (
-    <section id="apis" className="py-20 bg-gray-50 dark:bg-gray-950">
+    <section id="apis" className="py-20 bg-slate-50 dark:bg-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">연동 가능한 API</h2>
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">연동 가능한 API</h2>
           <p className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
             Sandbox 키를 즉시 발급받아 테스트해보세요. 모든 API는 무료로 체험 가능합니다.
           </p>
@@ -288,10 +288,10 @@ function HowItWorks() {
   ]
 
   return (
-    <section id="how" className="py-20 bg-white dark:bg-gray-900">
+    <section id="how" className="py-20 bg-white/70 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-14">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">어떻게 작동하나요?</h2>
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">어떻게 작동하나요?</h2>
           <p className="text-gray-500 dark:text-gray-400">3단계로 API 통합을 시작하세요</p>
         </div>
 
@@ -307,7 +307,7 @@ function HowItWorks() {
                 </div>
                 <span className="text-2xl font-bold text-gray-200 dark:text-gray-700 leading-none">{step.number}</span>
               </div>
-              <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">{step.title}</h3>
+              <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-2">{step.title}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{step.description}</p>
             </div>
           ))}
@@ -319,10 +319,10 @@ function HowItWorks() {
 
 function CodeExample() {
   return (
-    <section className="py-20 bg-gray-50 dark:bg-gray-950">
+    <section className="py-20 bg-slate-100/60 dark:bg-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">간단한 호출, 강력한 기능</h2>
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">간단한 호출, 강력한 기능</h2>
           <p className="text-gray-500 dark:text-gray-400">
             단 한 줄의 헤더 추가로 게이트웨이의 모든 기능을 사용할 수 있습니다
           </p>
@@ -394,7 +394,7 @@ function CodeExample() {
             <div key={f.title} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 flex items-start gap-3">
               <span className="text-xl">{f.icon}</span>
               <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">{f.title}</p>
+                <p className="text-sm font-semibold text-slate-700 dark:text-white">{f.title}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{f.desc}</p>
               </div>
             </div>
@@ -407,7 +407,7 @@ function CodeExample() {
 
 function Footer() {
   return (
-    <footer className="border-t border-gray-200 dark:border-gray-800 py-8 bg-gray-50 dark:bg-gray-950">
+    <footer className="border-t border-slate-200 dark:border-gray-800 py-8 bg-slate-50 dark:bg-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <span className="text-base font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
           apiverse
@@ -430,7 +430,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
       <LandingNavbar />
       <Hero />
       <Stats />

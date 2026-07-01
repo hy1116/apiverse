@@ -1,3 +1,3 @@
-package com.hypepia.apiverse.core.dto;
+package com.hypepia.apiverse.gateway.inquiry;
 
 public record AnswerRequest(String answer) {}
