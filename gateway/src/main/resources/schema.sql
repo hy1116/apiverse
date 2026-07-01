@@ -43,6 +43,17 @@ ALTER TABLE api_products ADD COLUMN IF NOT EXISTS spec_json     TEXT;
 -- api_products.name 유니크 인덱스 (ON CONFLICT (name) 에 필요)
 CREATE UNIQUE INDEX IF NOT EXISTS api_products_name_unique ON api_products (name);
 
+CREATE TABLE IF NOT EXISTS inquiries (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT NOT NULL REFERENCES users(id),
+    title       VARCHAR(200) NOT NULL,
+    content     TEXT NOT NULL,
+    status      VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    answer      TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    answered_at TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS billing_logs (
     id              BIGSERIAL PRIMARY KEY,
     api_key_value   VARCHAR(255) NOT NULL,

@@ -51,11 +51,11 @@ function ApiKeyCard({ apiKey, onRevoke, onViewDetail }) {
         <div>
           <button
             onClick={() => onViewDetail(apiKey.apiProductId)}
-            className="font-semibold text-gray-900 dark:text-white text-sm hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
+            className="block font-semibold text-gray-900 dark:text-white text-sm hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
           >
             {apiKey.apiProductName}
           </button>
-          <span className="inline-flex items-center gap-1 mt-1.5 text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full font-medium">
+          <span className="inline-flex items-center gap-1 mt-2 text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Sandbox · 활성
           </span>

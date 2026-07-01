@@ -72,6 +72,33 @@ WHERE u.email = 'dev@hypepia.com'
 ON CONFLICT (api_key_value) DO NOTHING;
 
 -- ============================================================
+-- inquiries  (샘플 1:1 문의)
+-- ============================================================
+INSERT INTO inquiries (user_id, title, content, status, answer, created_at, answered_at)
+SELECT
+    (SELECT id FROM users WHERE email = 'dev@hypepia.com'),
+    'PRO 플랜 업그레이드 후 한도 적용 시점 문의',
+    'PRO 플랜으로 업그레이드하면 API 호출 한도가 언제부터 적용되나요? 즉시 적용인지 다음 달부터인지 궁금합니다.',
+    'ANSWERED',
+    '안녕하세요! 업그레이드 즉시 새로운 한도가 적용됩니다. 궁금한 점이 있으시면 언제든지 문의해 주세요.',
+    NOW() - INTERVAL '3 days',
+    NOW() - INTERVAL '2 days'
+WHERE NOT EXISTS (
+    SELECT 1 FROM inquiries WHERE title = 'PRO 플랜 업그레이드 후 한도 적용 시점 문의'
+);
+
+INSERT INTO inquiries (user_id, title, content, status, created_at)
+SELECT
+    (SELECT id FROM users WHERE email = 'dev@hypepia.com'),
+    'Sandbox 키로 실제 API 호출이 가능한가요?',
+    '발급받은 Sandbox 키를 사용해 외부 API를 직접 호출할 수 있는지 궁금합니다. 프록시 방식인지 아니면 키만 전달하는 방식인지도 알고 싶습니다.',
+    'PENDING',
+    NOW() - INTERVAL '1 day'
+WHERE NOT EXISTS (
+    SELECT 1 FROM inquiries WHERE title = 'Sandbox 키로 실제 API 호출이 가능한가요?'
+);
+
+-- ============================================================
 -- billing_logs  (mockUsageData 날짜별 정확한 건수 재현)
 -- NOT EXISTS 가드: 해당 날짜 데이터가 없을 때만 INSERT
 -- ============================================================
