@@ -1,11 +1,11 @@
-# front 모듈
+# web 모듈
 
-React 18 + Vite 5 + Tailwind CSS 3 SPA. Vite dev 서버가 `/api/*`를 `http://127.0.0.1:8080`으로 프록시 (IPv4 명시 — Node.js IPv6 오작동 방지).
+React 18 + Vite 5 + Tailwind CSS 3 SPA (사용자용, `www.apiverse.com`). Vite dev 서버가 `/api/*`를 `http://127.0.0.1:8080`으로 프록시 (IPv4 명시 — Node.js IPv6 오작동 방지).
 
 ## 파일 구조
 
 ```
-front/src/
+web/src/
 ├── App.jsx              라우터 + ErrorBoundary
 ├── api/client.js        Axios 인스턴스 (baseURL: /api, 인터셉터 포함)
 ├── context/

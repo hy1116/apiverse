@@ -21,23 +21,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew :gateway:test --tests "com.hypepia.apiverse.gateway.SomeTest"
 
 # Frontend dev server (proxy → localhost:8080)
-cd front && npm run dev
+cd web && npm run dev
 
 # Frontend build
-cd front && npm run build
+cd web && npm run build
+
+# Admin frontend dev server (proxy → localhost:8090)
+cd console && npm run dev
 ```
 
 On Windows, use `gradlew.bat` instead of `./gradlew`.
 
 ## Architecture
 
-Multi-module Gradle project using the **reactive stack** (WebFlux + R2DBC), targeting Java 17. Frontend is a separate Vite app under `front/`.
+Multi-module Gradle project using the **reactive stack** (WebFlux + R2DBC), targeting Java 17. Frontends are separate Vite apps under `web/` (user) and `console/` (admin).
 
 ```
 apiverse/
 ├── core/                  ← 공유 라이브러리: R2DBC 엔티티 + 레포지토리 + DB 프로젝션
-├── gateway/               ← Spring Boot 앱: WebFlux, Security, JWT, Redis, Proxy
-├── front/                 ← React 18 + Vite 5 + Tailwind CSS 3 SPA
+├── gateway/               ← Spring Boot 앱 (8080): 사용자 API, WebFlux, Security, JWT, Redis, Proxy
+├── admin/                 ← Spring Boot 앱 (8090): 어드민 전용 API
+├── web/                   ← React 18 + Vite 5 + Tailwind CSS 3 SPA (www.apiverse.com)
+├── console/               ← React 18 + Vite 5 + Tailwind CSS 3 어드민 SPA (admin.apiverse.com)
 ├── docs/                  ← 모듈별 상세 분석 문서
 ├── docker-compose.yml     ← PostgreSQL + pgAdmin
 └── docker/pgadmin/
@@ -46,7 +51,9 @@ apiverse/
 **모듈별 상세 문서:**
 - [core 분석](docs/core.md) — 엔티티, 레포지토리, DB 스키마, R2DBC 주의사항
 - [gateway 분석](docs/gateway.md) — 전체 엔드포인트, 인증 구조, 프록시 흐름, 리액티브 패턴
-- [front 분석](docs/front.md) — 라우트, 컴포넌트, 인증/에러 처리
+- [web 분석](docs/web.md) — 라우트, 컴포넌트, 인증/에러 처리
+- [admin 분석](docs/admin.md) — 어드민 API 엔드포인트, 인증 구조
+- [console 분석](docs/console.md) — 어드민 라우트, 컴포넌트
 
 ## Module Summary
 
@@ -71,8 +78,14 @@ Runnable Spring Boot app. `@SpringBootApplication(scanBasePackages = "com.hypepi
 | `proxy` | `ProxyController`, `ProxyService`, `RateLimiter`, `ProxyConfig` | API 키 인증 → 레이트 리밋 → 업스트림 포워드 |
 | `scheduler` | `QuotaResetScheduler` | 매월 1일 used_quota 초기화 |
 
-### front
-React 18 SPA. 인증 필요 페이지는 `ProtectedRoute`로 보호. 미인증 `/api` 응답 401 → Axios 인터셉터가 `/login` 리다이렉트.
+### web
+React 18 SPA (사용자용). 인증 필요 페이지는 `ProtectedRoute`로 보호. 미인증 `/api` 응답 401 → Axios 인터셉터가 `/login` 리다이렉트.
+
+### admin
+Spring Boot 어드민 전용 앱 (port 8090). core 의존. ADMIN tier 사용자만 접근 가능.
+
+### console
+React 18 SPA (어드민용). `admin-api.apiverse.com`(8090)으로 프록시.
 
 ## Key Design Decisions
 

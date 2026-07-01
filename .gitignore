@@ -39,7 +39,8 @@ out/
 ### Docker ###
 docker/
 
-### front ###
+### frontend ###
+front/
 node_modules/
 dist/
 
