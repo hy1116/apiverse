@@ -42,3 +42,6 @@ docker/
 ### front ###
 node_modules/
 dist/
+
+### claude ###
+.claude/
