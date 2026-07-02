@@ -19,19 +19,6 @@ export default function ProductsPage() {
 
   useEffect(load, [])
 
-  const approve = async (e, id) => {
-    e.stopPropagation()
-    await client.patch(`/admin/products/${id}/approve`)
-    load()
-  }
-
-  const reject = async (e, id) => {
-    e.stopPropagation()
-    if (!window.confirm('이 상품을 반려(삭제)하시겠습니까?')) return
-    await client.delete(`/admin/products/${id}/reject`)
-    load()
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
@@ -51,12 +38,11 @@ export default function ProductsPage() {
                   <th className="px-5 py-3">카테고리</th>
                   <th className="px-5 py-3">상태</th>
                   <th className="px-5 py-3">프리미엄</th>
-                  <th className="px-5 py-3 text-right">작업</th>
                 </tr>
               </thead>
               <tbody>
                 {products.length === 0 && (
-                  <tr><td colSpan={6} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">등록된 상품이 없습니다</td></tr>
+                  <tr><td colSpan={5} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">등록된 상품이 없습니다</td></tr>
                 )}
                 {products.map((p) => (
                   <tr
@@ -77,24 +63,6 @@ export default function ProductsPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{p.isPremium ? '예' : '아니오'}</td>
-                    <td className="px-5 py-3 text-right space-x-2">
-                      {!p.isActive && (
-                        <>
-                          <button
-                            onClick={(e) => approve(e, p.id)}
-                            className="text-xs px-2.5 py-1 rounded-lg font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
-                          >
-                            승인
-                          </button>
-                          <button
-                            onClick={(e) => reject(e, p.id)}
-                            className="text-xs px-2.5 py-1 rounded-lg font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                          >
-                            반려
-                          </button>
-                        </>
-                      )}
-                    </td>
                   </tr>
                 ))}
               </tbody>

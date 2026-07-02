@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import client from '../api/client.js'
 
@@ -11,12 +11,15 @@ function parseUpstreamKeyParam(param) {
 
 export default function ProductDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState(null)
+  const [approving, setApproving] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
 
   useEffect(() => {
     client.get(`/admin/products/${id}`)
@@ -63,6 +66,27 @@ export default function ProductDetailPage() {
     }
   }
 
+  const approve = async () => {
+    setApproving(true)
+    try {
+      const { data } = await client.patch(`/admin/products/${id}/approve`)
+      setProduct(data)
+    } finally {
+      setApproving(false)
+    }
+  }
+
+  const reject = async () => {
+    if (!window.confirm('이 상품을 반려(삭제)하시겠습니까?')) return
+    setRejecting(true)
+    try {
+      await client.delete(`/admin/products/${id}/reject`)
+      navigate('/products')
+    } finally {
+      setRejecting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Navbar />
@@ -87,6 +111,25 @@ export default function ProductDetailPage() {
                 {product.isActive ? '승인됨' : '대기중'}
               </span>
             </div>
+
+            {!product.isActive && (
+              <div className="flex gap-2">
+                <button
+                  onClick={approve}
+                  disabled={approving || rejecting}
+                  className="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
+                >
+                  {approving ? '승인 중...' : '승인'}
+                </button>
+                <button
+                  onClick={reject}
+                  disabled={approving || rejecting}
+                  className="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40"
+                >
+                  {rejecting ? '반려 중...' : '반려'}
+                </button>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">

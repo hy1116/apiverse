@@ -19,20 +19,80 @@ function MoonIcon() {
   )
 }
 
+const NAV_GROUPS = [
+  {
+    label: 'API 관리',
+    sublabel: '서비스 운영',
+    links: [
+      { to: '/products', label: 'API 상품' },
+      { to: '/keys', label: 'API 키' },
+      { to: '/logs', label: '요청 로그' },
+    ],
+  },
+  {
+    label: '회원/서비스 관리',
+    sublabel: '사용자/문의',
+    links: [
+      { to: '/users', label: '회원' },
+      { to: '/inquiries', label: '문의' },
+    ],
+  },
+  {
+    label: '시스템/보안',
+    sublabel: '인프라 관리',
+    links: [
+      { to: '/blocked-ips', label: '차단 IP 관리' },
+      { to: '/stats', label: '통계' },
+    ],
+  },
+]
+
+function NavGroup({ group, active, open, onToggle, onClose }) {
+  return (
+    <div className="relative">
+      <button
+        onClick={onToggle}
+        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+          active
+            ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
+            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+        }`}
+      >
+        {group.label}
+        <svg className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={onClose} />
+          <div className="absolute left-0 mt-1.5 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-lg shadow-black/10 dark:shadow-black/40 border border-gray-200 dark:border-gray-700 py-1.5 z-50">
+            <p className="px-4 py-1.5 text-xs text-gray-400 dark:text-gray-600">{group.sublabel}</p>
+            {group.links.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={onClose}
+                className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function Navbar() {
   const { admin, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
-
-  const navLinks = [
-    { to: '/dashboard', label: '대시보드' },
-    { to: '/products', label: 'API 상품' },
-    { to: '/inquiries', label: '문의' },
-    { to: '/users', label: '회원' },
-    { to: '/keys', label: 'API 키' },
-  ]
+  const [openGroup, setOpenGroup] = useState(null)
 
   const handleLogout = () => {
     logout()
@@ -51,18 +111,26 @@ export default function Navbar() {
               </span>
             </Link>
             <div className="hidden md:flex items-center gap-0.5">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    location.pathname.startsWith(link.to)
-                      ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {link.label}
-                </Link>
+              <Link
+                to="/dashboard"
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname.startsWith('/dashboard')
+                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                대시보드
+              </Link>
+
+              {NAV_GROUPS.map((group) => (
+                <NavGroup
+                  key={group.label}
+                  group={group}
+                  active={group.links.some((l) => location.pathname.startsWith(l.to))}
+                  open={openGroup === group.label}
+                  onToggle={() => setOpenGroup(openGroup === group.label ? null : group.label)}
+                  onClose={() => setOpenGroup(null)}
+                />
               ))}
             </div>
           </div>
