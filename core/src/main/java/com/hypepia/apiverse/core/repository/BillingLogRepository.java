@@ -7,7 +7,6 @@ import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
 
 public interface BillingLogRepository extends ReactiveCrudRepository<BillingLog, Long> {
-    Flux<BillingLog> findByApiKeyValue(String apiKeyValue);
 
     @Query("""
         SELECT
@@ -22,4 +21,16 @@ public interface BillingLogRepository extends ReactiveCrudRepository<BillingLog,
         ORDER BY DATE(bl.request_time)
         """)
     Flux<DailyStat> findDailyStatsByUserId(Long userId);
+
+    @Query("""
+        SELECT
+            TO_CHAR(bl.request_time, 'MM/DD') AS date,
+            COUNT(*) FILTER (WHERE bl.response_status < 500) AS requests,
+            COUNT(*) FILTER (WHERE bl.response_status >= 500) AS errors
+        FROM billing_logs bl
+        WHERE bl.request_time >= NOW() - INTERVAL '7 days'
+        GROUP BY DATE(bl.request_time), TO_CHAR(bl.request_time, 'MM/DD')
+        ORDER BY DATE(bl.request_time)
+        """)
+    Flux<DailyStat> findDailyStatsGlobal();
 }

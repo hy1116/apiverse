@@ -91,7 +91,7 @@ React 18 SPA (어드민용). `admin-api.apiverse.com`(8090)으로 프록시.
 
 - **논블로킹 필수** — 모든 컨트롤러 `Mono<T>` / `Flux<T>` 반환. 블로킹 호출 금지.
 - **JWT principal** — 컨트롤러에서 `@AuthenticationPrincipal Mono<Long> principal`로 userId 추출. `ReactiveSecurityContextHolder` 직접 사용 금지.
-- **ADMIN 확인** — 별도 Role 없음. `"ADMIN".equals(user.getTier())` 문자열 비교.
+- **ADMIN 확인** — `users.role` 컬럼(`USER`/`ADMIN`)으로 판별: `"ADMIN".equals(user.getRole())`. `tier`는 과금 등급(FREE/PRO/ENTERPRISE)이고 권한과 무관 — 둘을 섞으면 tier 변경 API로 권한 상승이 가능해지므로 분리되어 있음.
 - **API 상품 등록** — 누구나 가능, `isActive=false`로 저장. 관리자가 `/api/products/{id}/approve`로 활성화.
 - **프록시 인증** — `/gateway/**`는 JWT 아닌 `X-API-KEY` 헤더. SecurityConfig에서 `permitAll`, ProxyService 내부에서 검증.
 - **DTO 위치** — HTTP 요청 DTO는 `gateway` 기능 패키지. SQL 프로젝션(`DailyStat`)은 레포지토리와 같은 `core/projection/`.
@@ -101,7 +101,7 @@ React 18 SPA (어드민용). `admin-api.apiverse.com`(8090)으로 프록시.
 ## DB Schema
 
 ```
-users           id, email (UNIQUE), password_hash, company_name, phone, tier, created_at
+users           id, email (UNIQUE), password_hash, company_name, phone, tier, role, created_at
 api_products    id, name (UNIQUE), description, base_url, is_premium, is_active,
                 category, calls_per_sec, spec_json
 api_keys        id, user_id → users, api_product_id → api_products,

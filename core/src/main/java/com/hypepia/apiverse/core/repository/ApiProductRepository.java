@@ -7,4 +7,5 @@ import reactor.core.publisher.Flux;
 public interface ApiProductRepository extends ReactiveCrudRepository<ApiProduct, Long> {
     Flux<ApiProduct> findAllByIsActiveTrueOrderByIsPremiumAsc();
     Flux<ApiProduct> findAllByIsActiveFalseOrderByIdDesc();
+    Flux<ApiProduct> findAllByOrderByIdDesc();
 }

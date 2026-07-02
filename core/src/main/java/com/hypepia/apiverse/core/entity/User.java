@@ -33,6 +33,9 @@ public class User {
     @Builder.Default
     private String tier = "FREE";
 
+    @Builder.Default
+    private String role = "USER";
+
     @Column("created_at")
     private LocalDateTime createdAt;
 }

@@ -15,10 +15,9 @@ web/src/
 │   ├── Navbar.jsx
 │   ├── ProtectedRoute.jsx   미인증 → /login
 │   └── ErrorBoundary.jsx    런타임 에러 → 500 화면
-├── pages/               LandingPage, LoginPage, SignupPage, DashboardPage,
-│                        MarketplacePage, ApiDetailPage, RegisterApiPage,
-│                        InquiryPage, NotFoundPage
-└── data/mockData.js     정적 참조 데이터 — 프로덕션 미사용, 삭제 가능
+└── pages/               LandingPage, LoginPage, SignupPage, DashboardPage,
+                         MarketplacePage, ApiDetailPage, RegisterApiPage,
+                         InquiryPage, NotFoundPage
 ```
 
 ## 라우트

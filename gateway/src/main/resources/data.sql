@@ -41,12 +41,27 @@ VALUES (
 -- users  (dev seed account — password: "hypepia123")
 -- BCrypt(10) hash — 인증 구현 후 실제 가입 플로우로 대체
 -- ============================================================
-INSERT INTO users (email, password_hash, company_name, tier, created_at)
+INSERT INTO users (email, password_hash, company_name, tier, role, created_at)
 VALUES (
   'dev@hypepia.com',
   '$2a$10$D4ZntdHEJNHQLUhAmyMJKuCOS/1efCznwmdJG9FZtXTqmukYaoohe',
   'Hypepia Inc.',
   'FREE',
+  'USER',
+  '2026-06-01 00:00:00'
+) ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
+
+-- ============================================================
+-- users  (admin seed account — password: "admin1234!")
+-- BCrypt(10) hash — admin 콘솔(:8090) 로그인 테스트용
+-- ============================================================
+INSERT INTO users (email, password_hash, company_name, tier, role, created_at)
+VALUES (
+  'admin@apiverse.com',
+  '$2a$10$c0Qa8IikffrdG21mkO7o4OCItiIZ/i.7AOGQdHYUv/YwirPwwhNNa',
+  'ApiVerse',
+  'FREE',
+  'ADMIN',
   '2026-06-01 00:00:00'
 ) ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
 

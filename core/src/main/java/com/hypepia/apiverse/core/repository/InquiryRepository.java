@@ -6,4 +6,5 @@ import reactor.core.publisher.Flux;
 
 public interface InquiryRepository extends ReactiveCrudRepository<Inquiry, Long> {
     Flux<Inquiry> findByUserIdOrderByCreatedAtDesc(Long userId);
+    Flux<Inquiry> findAllByOrderByCreatedAtDesc();
 }

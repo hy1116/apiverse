@@ -15,6 +15,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/products")
@@ -40,7 +41,7 @@ public class ApiProductController {
     @GetMapping("/{id}/my-key")
     public Mono<Map<String, String>> getMyKey(@PathVariable Long id) {
         return ReactiveSecurityContextHolder.getContext()
-                .map(ctx -> (Long) ctx.getAuthentication().getPrincipal())
+                .map(ctx -> (Long) Objects.requireNonNull(Objects.requireNonNull(ctx.getAuthentication()).getPrincipal()))
                 .flatMap(userId -> apiKeyRepository.findByUserIdAndApiProductId(userId, id))
                 .map(key -> Map.of("apiKeyValue", key.getApiKeyValue()))
                 .defaultIfEmpty(Map.of());
@@ -79,7 +80,7 @@ public class ApiProductController {
                 .flatMap(uid -> userRepository.findById(uid)
                         .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED))))
                 .map(user -> {
-                    if (!"ADMIN".equals(user.getTier())) {
+                    if (!"ADMIN".equals(user.getRole())) {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
                     }
                     return ResponseEntity.ok(apiProductRepository.findAllByIsActiveFalseOrderByIdDesc());
@@ -94,7 +95,7 @@ public class ApiProductController {
                 .flatMap(uid -> userRepository.findById(uid)
                         .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED))))
                 .flatMap(user -> {
-                    if (!"ADMIN".equals(user.getTier())) {
+                    if (!"ADMIN".equals(user.getRole())) {
                         return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).build());
                     }
                     return apiProductRepository.findById(id)

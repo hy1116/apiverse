@@ -1,3 +1,4 @@
 rootProject.name = 'apiverse'
 include 'core'
 include 'gateway'
+include 'admin'

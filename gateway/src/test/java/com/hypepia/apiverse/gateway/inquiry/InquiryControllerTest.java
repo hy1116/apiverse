@@ -170,7 +170,7 @@ class InquiryControllerTest {
 
     @Test
     void answer_admin_succeeds() {
-        User admin = User.builder().id(1L).tier("ADMIN").build();
+        User admin = User.builder().id(1L).role("ADMIN").build();
         Inquiry answered = INQUIRY_1.toBuilder().answer("답변입니다").status("ANSWERED").build();
 
         given(userRepository.findById(1L)).willReturn(Mono.just(admin));
@@ -202,7 +202,7 @@ class InquiryControllerTest {
 
     @Test
     void answer_inquiry_not_found_returns_404() {
-        User admin = User.builder().id(1L).tier("ADMIN").build();
+        User admin = User.builder().id(1L).role("ADMIN").build();
 
         given(userRepository.findById(1L)).willReturn(Mono.just(admin));
         given(inquiryRepository.findById(99L)).willReturn(Mono.empty());

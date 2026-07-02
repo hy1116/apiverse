@@ -80,7 +80,7 @@ public class InquiryController {
                 .flatMap(uid -> userRepository.findById(uid)
                         .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED))))
                 .flatMap(user -> {
-                    if (!"ADMIN".equals(user.getTier())) {
+                    if (!"ADMIN".equals(user.getRole())) {
                         return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).build());
                     }
                     return inquiryRepository.findById(id)

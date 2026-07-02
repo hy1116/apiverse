@@ -11,6 +11,7 @@ public interface ApiKeyRepository extends ReactiveCrudRepository<ApiKey, Long> {
     Mono<ApiKey> findByApiKeyValue(String apiKeyValue);
     Flux<ApiKey> findByUserId(Long userId);
     Mono<ApiKey> findByUserIdAndApiProductId(Long userId, Long apiProductId);
+    Flux<ApiKey> findAllByOrderByIdDesc();
 
     @Modifying
     @Query("UPDATE api_keys SET used_quota = used_quota + 1 WHERE id = :id")
