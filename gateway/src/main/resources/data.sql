@@ -1,39 +1,43 @@
 -- ============================================================
 -- api_products
 -- ============================================================
-INSERT INTO api_products (name, description, base_url, is_premium, is_active, category, calls_per_sec, spec_json)
+INSERT INTO api_products (name, code, description, base_url, is_premium, is_active, category, calls_per_sec, response_type, spec_json)
 VALUES (
   '기상청 날씨 API',
+  'weather',
   '실시간 기온, 강수량, 바람, 습도 등 전국 기상 관측 데이터를 제공하는 공공 API입니다.',
   'https://api.weather.go.kr/v1',
-  false, true, 'Weather', 5,
+  false, true, 'Weather', 5, 'JSON',
   '{"openapi":"3.0.0","info":{"title":"기상청 날씨 API","version":"1.0.0","description":"실시간 기상 데이터 조회"},"servers":[{"url":"https://api.weather.go.kr/v1"}],"paths":{"/current":{"get":{"summary":"현재 날씨 조회","parameters":[{"name":"region","in":"query","required":true,"schema":{"type":"string"},"description":"지역명 (예: 서울)"}],"responses":{"200":{"description":"성공","content":{"application/json":{"example":{"region":"서울","temp":22.4,"humidity":65,"wind":3.2,"condition":"맑음"}}}}},"security":[{"ApiKeyAuth":[]}]}},"/forecast":{"get":{"summary":"7일 날씨 예보","parameters":[{"name":"region","in":"query","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"성공"}},"security":[{"ApiKeyAuth":[]}]}}},"components":{"securitySchemes":{"ApiKeyAuth":{"type":"apiKey","in":"header","name":"X-API-KEY"}}}}'
 ) ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO api_products (name, description, base_url, is_premium, is_active, category, calls_per_sec, spec_json)
+INSERT INTO api_products (name, code, description, base_url, is_premium, is_active, category, calls_per_sec, response_type, spec_json)
 VALUES (
   '공공 주소 검색 API',
+  'juso',
   '도로명 주소, 지번 주소, 우편번호 등 전국 주소 데이터를 검색할 수 있는 API입니다.',
   'https://api.juso.go.kr/v2',
-  false, true, 'Location', 10,
+  false, true, 'Location', 10, 'JSON',
   '{"openapi":"3.0.0","info":{"title":"공공 주소 검색 API","version":"2.0.0"},"servers":[{"url":"https://api.juso.go.kr/v2"}],"paths":{"/search":{"get":{"summary":"주소 검색","parameters":[{"name":"keyword","in":"query","required":true,"schema":{"type":"string"}},{"name":"page","in":"query","schema":{"type":"integer","default":1}},{"name":"size","in":"query","schema":{"type":"integer","default":10}}],"responses":{"200":{"description":"성공"}},"security":[{"ApiKeyAuth":[]}]}}},"components":{"securitySchemes":{"ApiKeyAuth":{"type":"apiKey","in":"header","name":"X-API-KEY"}}}}'
 ) ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO api_products (name, description, base_url, is_premium, is_active, category, calls_per_sec, spec_json)
+INSERT INTO api_products (name, code, description, base_url, is_premium, is_active, category, calls_per_sec, response_type, spec_json)
 VALUES (
   '한국관광공사 관광정보 API',
+  'visitkorea',
   '전국 관광지, 숙박, 음식점, 축제 등 관광 정보를 제공하는 공공 API입니다.',
   'https://api.visitkorea.or.kr/v1',
-  false, true, 'Tourism', 5,
+  false, true, 'Tourism', 5, 'JSON',
   '{"openapi":"3.0.0","info":{"title":"한국관광공사 관광정보 API","version":"1.0.0"},"servers":[{"url":"https://api.visitkorea.or.kr/v1"}],"paths":{"/attractions":{"get":{"summary":"관광지 목록 조회","parameters":[{"name":"area","in":"query","schema":{"type":"string"}},{"name":"category","in":"query","schema":{"type":"string","enum":["관광지","숙박","음식점","축제"]}}],"responses":{"200":{"description":"성공"}},"security":[{"ApiKeyAuth":[]}]}}},"components":{"securitySchemes":{"ApiKeyAuth":{"type":"apiKey","in":"header","name":"X-API-KEY"}}}}'
 ) ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO api_products (name, description, base_url, is_premium, is_active, category, calls_per_sec, spec_json)
+INSERT INTO api_products (name, code, description, base_url, is_premium, is_active, category, calls_per_sec, response_type, spec_json)
 VALUES (
   '실시간 주식 시세 API',
+  'krx-data',
   '한국거래소(KRX) 실시간 주가, 거래량, 시가총액 데이터를 제공합니다. Pro 플랜 이상 사용 가능.',
   'https://api.krx-data.co.kr/v1',
-  true, true, 'Finance', 20,
+  true, true, 'Finance', 20, 'JSON',
   '{"openapi":"3.0.0","info":{"title":"실시간 주식 시세 API","version":"1.0.0"},"servers":[{"url":"https://api.krx-data.co.kr/v1"}],"paths":{"/quote/{ticker}":{"get":{"summary":"종목 현재가 조회","parameters":[{"name":"ticker","in":"path","required":true,"schema":{"type":"string"},"description":"종목 코드 (예: 005930)"}],"responses":{"200":{"description":"성공"}},"security":[{"ApiKeyAuth":[]}]}}},"components":{"securitySchemes":{"ApiKeyAuth":{"type":"apiKey","in":"header","name":"X-API-KEY"}}}}'
 ) ON CONFLICT (name) DO NOTHING;
 

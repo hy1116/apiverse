@@ -6,9 +6,12 @@ import ErrorBoundary from './components/ErrorBoundary.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 import ProductsPage from './pages/ProductsPage.jsx'
+import ProductDetailPage from './pages/ProductDetailPage.jsx'
 import InquiriesPage from './pages/InquiriesPage.jsx'
 import UsersPage from './pages/UsersPage.jsx'
+import UserDetailPage from './pages/UserDetailPage.jsx'
 import ApiKeysPage from './pages/ApiKeysPage.jsx'
+import ApiKeyDetailPage from './pages/ApiKeyDetailPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
 function RedirectIfAuth({ children }) {
@@ -27,9 +30,12 @@ export default function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
               <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+              <Route path="/products/:id" element={<ProtectedRoute><ProductDetailPage /></ProtectedRoute>} />
               <Route path="/inquiries" element={<ProtectedRoute><InquiriesPage /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
+              <Route path="/users/:id" element={<ProtectedRoute><UserDetailPage /></ProtectedRoute>} />
               <Route path="/keys" element={<ProtectedRoute><ApiKeysPage /></ProtectedRoute>} />
+              <Route path="/keys/:id" element={<ProtectedRoute><ApiKeyDetailPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>

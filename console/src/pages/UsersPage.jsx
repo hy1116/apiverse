@@ -1,26 +1,18 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import client from '../api/client.js'
-
-const TIERS = ['FREE', 'PRO', 'ENTERPRISE']
 
 export default function UsersPage() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
-  const load = () => {
-    setLoading(true)
+  useEffect(() => {
     client.get('/admin/users')
       .then((res) => setUsers(res.data))
       .finally(() => setLoading(false))
-  }
-
-  useEffect(load, [])
-
-  const changeTier = async (id, tier) => {
-    await client.patch(`/admin/users/${id}/tier`, { tier })
-    load()
-  }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -47,7 +39,11 @@ export default function UsersPage() {
                   <tr><td colSpan={5} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">회원이 없습니다</td></tr>
                 )}
                 {users.map((u) => (
-                  <tr key={u.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                  <tr
+                    key={u.id}
+                    onClick={() => navigate(`/users/${u.id}`)}
+                    className="border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  >
                     <td className="px-5 py-3 text-gray-900 dark:text-white font-medium">{u.email}</td>
                     <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{u.companyName ?? '-'}</td>
                     <td className="px-5 py-3 text-gray-500 dark:text-gray-400">
@@ -62,15 +58,7 @@ export default function UsersPage() {
                         {u.role}
                       </span>
                     </td>
-                    <td className="px-5 py-3">
-                      <select
-                        value={u.tier}
-                        onChange={(e) => changeTier(u.id, e.target.value)}
-                        className="px-2.5 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
-                      >
-                        {TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </td>
+                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{u.tier}</td>
                   </tr>
                 ))}
               </tbody>

@@ -14,8 +14,12 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/products")
@@ -57,20 +61,74 @@ public class ApiProductController {
         if (req.baseUrl() == null || req.baseUrl().isBlank()) {
             return Mono.just(ResponseEntity.badRequest().build());
         }
-        return principal.flatMap(uid -> {
-            ApiProduct product = ApiProduct.builder()
-                    .name(req.name().trim())
-                    .description(req.description())
-                    .baseUrl(req.baseUrl().trim())
-                    .category(req.category())
-                    .callsPerSec(req.callsPerSec() != null ? req.callsPerSec() : 5)
-                    .isPremium(Boolean.TRUE.equals(req.isPremium()))
-                    .isActive(false)
-                    .specJson(req.specJson())
-                    .build();
-            return apiProductRepository.save(product)
-                    .map(saved -> ResponseEntity.status(HttpStatus.CREATED).body(saved));
-        });
+        return principal.flatMap(uid -> generateUniqueCode(req.name().trim(), req.baseUrl().trim())
+                .flatMap(code -> {
+                    ApiProduct product = ApiProduct.builder()
+                            .name(req.name().trim())
+                            .code(code)
+                            .description(req.description())
+                            .baseUrl(req.baseUrl().trim())
+                            .category(req.category())
+                            .callsPerSec(req.callsPerSec() != null ? req.callsPerSec() : 5)
+                            .responseType(req.responseType() != null && !req.responseType().isBlank() ? req.responseType() : "JSON")
+                            .isPremium(Boolean.TRUE.equals(req.isPremium()))
+                            .isActive(false)
+                            .specJson(req.specJson())
+                            .build();
+                    return apiProductRepository.save(product)
+                            .map(saved -> ResponseEntity.status(HttpStatus.CREATED).body(saved));
+                }));
+    }
+
+    // code 생성 우선순위: base_url 도메인에서 의미 있는 부분 추출 → 실패 시 상품명 슬러그
+    // /gateway/{code}/** 경로에 쓰임
+    private Mono<String> generateUniqueCode(String name, String baseUrl) {
+        String domainSlug = extractDomainSlug(baseUrl);
+        String base = !domainSlug.isBlank() ? domainSlug : slugify(name);
+        return findUniqueCode(base, 0);
+    }
+
+    private static final Set<String> GENERIC_SUBDOMAINS = Set.of("www", "api");
+
+    // https://api.juso.go.kr/v2 → "juso" (www/api 같은 흔한 서브도메인은 건너뛰고 다음 라벨을 사용)
+    static String extractDomainSlug(String baseUrl) {
+        try {
+            String host = new URI(baseUrl).getHost();
+            if (host == null || host.isBlank()) {
+                return "";
+            }
+            String[] labels = host.toLowerCase().split("\\.");
+            int index = (labels.length > 1 && GENERIC_SUBDOMAINS.contains(labels[0])) ? 1 : 0;
+            return labels[index];
+        } catch (URISyntaxException e) {
+            return "";
+        }
+    }
+
+    private Mono<String> findUniqueCode(String base, int attempt) {
+        String candidate = attempt == 0 ? base : base + "-" + (attempt + 1);
+        return apiProductRepository.findByCode(candidate)
+                .flatMap(existing -> findUniqueCode(base, attempt + 1))
+                .switchIfEmpty(Mono.just(candidate));
+    }
+
+    private static String slugify(String name) {
+        StringBuilder sb = new StringBuilder();
+        boolean lastHyphen = false;
+        for (char c : name.toLowerCase().toCharArray()) {
+            if (Character.isLetterOrDigit(c)) {
+                sb.append(c);
+                lastHyphen = false;
+            } else if (!lastHyphen && !sb.isEmpty()) {
+                sb.append('-');
+                lastHyphen = true;
+            }
+        }
+        String slug = sb.toString();
+        if (slug.endsWith("-")) {
+            slug = slug.substring(0, slug.length() - 1);
+        }
+        return slug.isEmpty() ? "api-" + UUID.randomUUID().toString().substring(0, 8) : slug;
     }
 
     // ADMIN 전용 — 승인 대기 중인 상품 목록

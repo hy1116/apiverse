@@ -15,9 +15,9 @@ public class ProxyController {
 
     private final ProxyService proxyService;
 
-    @RequestMapping("/{productId}/**")
+    @RequestMapping("/{code}/**")
     public Mono<ResponseEntity<String>> proxy(ServerWebExchange exchange,
-                                              @PathVariable Long productId) {
-        return proxyService.proxy(exchange, productId);
+                                              @PathVariable String code) {
+        return proxyService.proxy(exchange, code);
     }
 }

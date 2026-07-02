@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS api_products (
     is_active    BOOLEAN DEFAULT TRUE,
     category     VARCHAR(50),
     calls_per_sec INT DEFAULT 5,
+    response_type VARCHAR(20) DEFAULT 'JSON',
     spec_json    TEXT
 );
 
@@ -26,7 +27,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
     user_id         BIGINT REFERENCES users(id),
     api_product_id  BIGINT REFERENCES api_products(id),
     api_key_value   VARCHAR(255) NOT NULL UNIQUE,
-    white_list_ip   VARCHAR(50),
+    white_list_ip   VARCHAR(255),
     monthly_quota   INT NOT NULL DEFAULT -1,
     used_quota      INT DEFAULT 0,
     is_active       BOOLEAN DEFAULT TRUE,
@@ -41,12 +42,26 @@ ALTER TABLE users        ADD COLUMN IF NOT EXISTS role          VARCHAR(20) DEFA
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS category      VARCHAR(50);
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS calls_per_sec INT DEFAULT 5;
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS spec_json     TEXT;
+ALTER TABLE api_products ADD COLUMN IF NOT EXISTS code               VARCHAR(120);
+ALTER TABLE api_products ADD COLUMN IF NOT EXISTS upstream_api_key   VARCHAR(255);
+ALTER TABLE api_products ADD COLUMN IF NOT EXISTS upstream_key_param VARCHAR(100);
+ALTER TABLE api_products ADD COLUMN IF NOT EXISTS response_type      VARCHAR(20) DEFAULT 'JSON';
+
+-- response_type 컬럼 추가 이전 데이터 백필
+UPDATE api_products SET response_type = 'JSON' WHERE response_type IS NULL;
+
+-- 콤마로 여러 IP를 등록할 수 있도록 확장 (기존 설치본 대비)
+ALTER TABLE api_keys ALTER COLUMN white_list_ip TYPE VARCHAR(255);
 
 -- role 컬럼 분리 이전 데이터 마이그레이션: tier='ADMIN'이던 계정을 role='ADMIN'/tier='FREE'로 이전
 UPDATE users SET role = 'ADMIN', tier = 'FREE' WHERE tier = 'ADMIN';
 
--- api_products.name 유니크 인덱스 (ON CONFLICT (name) 에 필요)
+-- code 컬럼 추가 이전 데이터 백필 (product_id 기반 URL을 쓰던 기존 행들)
+UPDATE api_products SET code = 'product-' || id WHERE code IS NULL;
+
+-- api_products.name / code 유니크 인덱스 (ON CONFLICT (name) 에 필요)
 CREATE UNIQUE INDEX IF NOT EXISTS api_products_name_unique ON api_products (name);
+CREATE UNIQUE INDEX IF NOT EXISTS api_products_code_unique ON api_products (code);
 
 CREATE TABLE IF NOT EXISTS inquiries (
     id          BIGSERIAL PRIMARY KEY,

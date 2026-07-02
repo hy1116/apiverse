@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockAuthentication;
 
@@ -131,5 +132,29 @@ class ApiProductControllerTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody().json("{}");
+    }
+
+    // ── extractDomainSlug (code 생성) ─────────────────────────────────────────
+
+    @Test
+    void extractDomainSlug_skips_leading_api_subdomain() {
+        assertThat(ApiProductController.extractDomainSlug("https://api.juso.go.kr/v2")).isEqualTo("juso");
+        assertThat(ApiProductController.extractDomainSlug("https://api.weather.go.kr/v1")).isEqualTo("weather");
+        assertThat(ApiProductController.extractDomainSlug("https://api.krx-data.co.kr/v1")).isEqualTo("krx-data");
+    }
+
+    @Test
+    void extractDomainSlug_skips_leading_www_subdomain() {
+        assertThat(ApiProductController.extractDomainSlug("https://www.example.com")).isEqualTo("example");
+    }
+
+    @Test
+    void extractDomainSlug_no_generic_subdomain_uses_first_label() {
+        assertThat(ApiProductController.extractDomainSlug("https://data.go.kr")).isEqualTo("data");
+    }
+
+    @Test
+    void extractDomainSlug_invalid_url_returns_empty() {
+        assertThat(ApiProductController.extractDomainSlug("not a url")).isEmpty();
     }
 }

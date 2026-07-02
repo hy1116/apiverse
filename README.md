@@ -1,13 +1,13 @@
-# 🚀 apiverse: Developer-First API Marketplace & Gateway Hub
+# 🚀 APIverse: Developer-First API Marketplace & Gateway Hub
 
 > **"지루한 B2B 영업 미팅과 대기 시간 없이, 가입 즉시 작동하는 개발자 친화적 1-Click API 중개 플랫폼"**
 >
-> **apiverse**는 기존 B2B API 중개 플랫폼들의 폐쇄적인 영업 프로세스를 파괴하고, 개발자가 가입 즉시 샌드박스 키를 발급받아 테스트할 수 있는 **Developer-First SaaS 아키텍처**입니다. 오픈소스 무료 나눔 API를 시작으로 정가제 기반의 프리미엄 유료 API 상품 및 AI 부가 옵션을 유연하게 결합하는 하이브리드 시스템을 지향합니다. `Java/Spring WebFlux`와 `Python/FastAPI` 각 생태계의 강점을 결합한 폴리글랏(Polyglot) 멀티 모듈 아키텍처를 구현합니다.
+> **APIverse**는 기존 B2B API 중개 플랫폼들의 폐쇄적인 영업 프로세스를 파괴하고, 개발자가 가입 즉시 샌드박스 키를 발급받아 테스트할 수 있는 **Developer-First SaaS 아키텍처**입니다. 오픈소스 무료 나눔 API를 시작으로 정가제 기반의 프리미엄 유료 API 상품 및 AI 부가 옵션을 유연하게 결합하는 하이브리드 시스템을 지향합니다. `Java/Spring WebFlux`와 `Python/FastAPI` 각 생태계의 강점을 결합한 폴리글랏(Polyglot) 멀티 모듈 아키텍처를 구현합니다.
 
 ---
 
 ## 💡 1. Core Principles: Developer-First UX
-apiverse는 철저히 개발자의 생산성과 디버깅 편의성에 모든 초점을 맞춥니다.
+APIverse는 철저히 개발자의 생산성과 디버깅 편의성에 모든 초점을 맞춥니다.
 
 * **1-Click Sandbox & Free Tier:** 신용카드 등록이나 승인 대기 프로세스 없이, 가입 즉시 테스트용 `Sandbox API Key`가 자동으로 발급되어 즉시 외부 API 호출을 테스트할 수 있습니다.
 * **Embedded Playground & Swagger UI:** API 상세 페이지 내에 통합 `Swagger UI`가 내장되며, 로그인된 유저의 API Key가 자동으로 세팅되어 브라우저에서 즉시 실제 API 응답 결과를 JSON으로 받아볼 수 있습니다.

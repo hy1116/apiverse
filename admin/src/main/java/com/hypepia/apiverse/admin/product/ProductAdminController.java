@@ -12,6 +12,9 @@ import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/admin/products")
 @RequiredArgsConstructor
@@ -29,24 +32,35 @@ public class ProductAdminController {
     }
 
     @GetMapping
-    public Flux<ApiProduct> listAll(@AuthenticationPrincipal Mono<Long> principal) {
+    public Flux<Map<String, Object>> listAll(@AuthenticationPrincipal Mono<Long> principal) {
         return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
-                .flatMapMany(uid -> apiProductRepository.findAllByOrderByIdDesc());
+                .flatMapMany(uid -> apiProductRepository.findAllByOrderByIdDesc())
+                .map(ProductAdminController::toProductMap);
     }
 
     @GetMapping("/pending")
-    public Flux<ApiProduct> listPending(@AuthenticationPrincipal Mono<Long> principal) {
+    public Flux<Map<String, Object>> listPending(@AuthenticationPrincipal Mono<Long> principal) {
         return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
-                .flatMapMany(uid -> apiProductRepository.findAllByIsActiveFalseOrderByIdDesc());
+                .flatMapMany(uid -> apiProductRepository.findAllByIsActiveFalseOrderByIdDesc())
+                .map(ProductAdminController::toProductMap);
+    }
+
+    @GetMapping("/{id}")
+    public Mono<ResponseEntity<Map<String, Object>>> detail(@PathVariable Long id,
+                                                            @AuthenticationPrincipal Mono<Long> principal) {
+        return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
+                .flatMap(uid -> apiProductRepository.findById(id))
+                .map(p -> ResponseEntity.ok(toProductMap(p)))
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
     @PatchMapping("/{id}/approve")
-    public Mono<ResponseEntity<ApiProduct>> approve(@PathVariable Long id,
-                                                    @AuthenticationPrincipal Mono<Long> principal) {
+    public Mono<ResponseEntity<Map<String, Object>>> approve(@PathVariable Long id,
+                                                             @AuthenticationPrincipal Mono<Long> principal) {
         return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
                 .flatMap(uid -> apiProductRepository.findById(id)
                         .flatMap(p -> apiProductRepository.save(p.toBuilder().isActive(true).build()))
-                        .map(ResponseEntity::ok)
+                        .map(p -> ResponseEntity.ok(toProductMap(p)))
                         .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
     }
 
@@ -67,9 +81,9 @@ public class ProductAdminController {
     }
 
     @PatchMapping("/{id}")
-    public Mono<ResponseEntity<ApiProduct>> update(@PathVariable Long id,
-                                                   @RequestBody UpdateProductRequest req,
-                                                   @AuthenticationPrincipal Mono<Long> principal) {
+    public Mono<ResponseEntity<Map<String, Object>>> update(@PathVariable Long id,
+                                                            @RequestBody UpdateProductRequest req,
+                                                            @AuthenticationPrincipal Mono<Long> principal) {
         return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
                 .flatMap(uid -> apiProductRepository.findById(id))
                 .flatMap(p -> {
@@ -78,11 +92,34 @@ public class ProductAdminController {
                     if (req.baseUrl() != null) builder.baseUrl(req.baseUrl());
                     if (req.category() != null) builder.category(req.category());
                     if (req.callsPerSec() != null) builder.callsPerSec(req.callsPerSec());
+                    if (req.responseType() != null) builder.responseType(req.responseType());
                     if (req.isPremium() != null) builder.isPremium(req.isPremium());
                     if (req.specJson() != null) builder.specJson(req.specJson());
+                    if (req.code() != null) builder.code(req.code());
+                    if (req.upstreamApiKey() != null) builder.upstreamApiKey(req.upstreamApiKey());
+                    if (req.upstreamKeyParam() != null) builder.upstreamKeyParam(req.upstreamKeyParam());
                     return apiProductRepository.save(builder.build());
                 })
-                .map(ResponseEntity::ok)
+                .map(p -> ResponseEntity.ok(toProductMap(p)))
                 .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    // upstreamApiKey/upstreamKeyParam은 core.ApiProduct에서 @JsonIgnore 처리되어 있어
+    // (일반 유저용 /api/products 응답에 절대 노출되지 않도록) 명시적으로 여기서만 담아 반환한다.
+    private static Map<String, Object> toProductMap(ApiProduct p) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id",               p.getId());
+        m.put("name",             p.getName());
+        m.put("code",             p.getCode());
+        m.put("description",      p.getDescription());
+        m.put("baseUrl",          p.getBaseUrl());
+        m.put("isPremium",        p.getIsPremium());
+        m.put("isActive",         p.getIsActive());
+        m.put("category",         p.getCategory());
+        m.put("callsPerSec",      p.getCallsPerSec());
+        m.put("responseType",     p.getResponseType());
+        m.put("upstreamApiKey",   p.getUpstreamApiKey());
+        m.put("upstreamKeyParam", p.getUpstreamKeyParam());
+        return m;
     }
 }

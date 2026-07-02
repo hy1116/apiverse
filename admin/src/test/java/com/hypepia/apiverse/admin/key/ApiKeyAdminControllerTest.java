@@ -82,6 +82,42 @@ class ApiKeyAdminControllerTest {
                 .expectStatus().isForbidden();
     }
 
+    // ── GET /api/admin/keys/{id} ─────────────────────────────────────────────
+
+    @Test
+    void detail_admin_returns_key_with_owner_and_product() {
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(10L)).willReturn(Mono.just(KEY));
+        given(apiProductRepository.findById(1L)).willReturn(Mono.just(PRODUCT));
+        given(userRepository.findById(5L)).willReturn(Mono.just(KEY_OWNER));
+
+        asUser(1L).get().uri("/api/admin/keys/10")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.apiKeyValue").isEqualTo("apiverse_sandbox_abc123")
+                .jsonPath("$.userEmail").isEqualTo("owner@example.com");
+    }
+
+    @Test
+    void detail_not_found_returns_404() {
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(99L)).willReturn(Mono.empty());
+
+        asUser(1L).get().uri("/api/admin/keys/99")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void detail_non_admin_returns_403() {
+        given(userRepository.findById(2L)).willReturn(Mono.just(REGULAR));
+
+        asUser(2L).get().uri("/api/admin/keys/10")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
     // ── DELETE /api/admin/keys/{id} ──────────────────────────────────────────
 
     @Test
@@ -110,6 +146,71 @@ class ApiKeyAdminControllerTest {
         given(userRepository.findById(2L)).willReturn(Mono.just(REGULAR));
 
         asUser(2L).delete().uri("/api/admin/keys/10")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    // ── PATCH /api/admin/keys/{id}/whitelist-ip ──────────────────────────────
+
+    @Test
+    void updateWhiteListIp_admin_sets_value() {
+        ApiKey key = ApiKey.builder().id(11L).userId(5L).apiProductId(1L)
+                .apiKeyValue("apiverse_sandbox_xyz").isActive(true).build();
+
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(11L)).willReturn(Mono.just(key));
+        given(apiKeyRepository.save(key)).willReturn(Mono.just(key));
+        given(apiProductRepository.findById(1L)).willReturn(Mono.just(PRODUCT));
+        given(userRepository.findById(5L)).willReturn(Mono.just(KEY_OWNER));
+
+        asUser(1L).patch().uri("/api/admin/keys/11/whitelist-ip")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("whiteListIp", "1.2.3.4,5.6.7.8"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.whiteListIp").isEqualTo("1.2.3.4,5.6.7.8");
+    }
+
+    @Test
+    void updateWhiteListIp_blank_clears_restriction() {
+        ApiKey key = ApiKey.builder().id(12L).userId(5L).apiProductId(1L)
+                .apiKeyValue("apiverse_sandbox_xyz").isActive(true).whiteListIp("1.2.3.4").build();
+
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(12L)).willReturn(Mono.just(key));
+        given(apiKeyRepository.save(key)).willReturn(Mono.just(key));
+        given(apiProductRepository.findById(1L)).willReturn(Mono.just(PRODUCT));
+        given(userRepository.findById(5L)).willReturn(Mono.just(KEY_OWNER));
+
+        asUser(1L).patch().uri("/api/admin/keys/12/whitelist-ip")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("whiteListIp", ""))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.whiteListIp").doesNotExist();
+    }
+
+    @Test
+    void updateWhiteListIp_not_found_returns_404() {
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(99L)).willReturn(Mono.empty());
+
+        asUser(1L).patch().uri("/api/admin/keys/99/whitelist-ip")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("whiteListIp", "1.2.3.4"))
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void updateWhiteListIp_non_admin_returns_403() {
+        given(userRepository.findById(2L)).willReturn(Mono.just(REGULAR));
+
+        asUser(2L).patch().uri("/api/admin/keys/10/whitelist-ip")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("whiteListIp", "1.2.3.4"))
                 .exchange()
                 .expectStatus().isForbidden();
     }

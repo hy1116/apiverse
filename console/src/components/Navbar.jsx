@@ -47,7 +47,7 @@ export default function Navbar() {
           <div className="flex items-center gap-6">
             <Link to="/dashboard" className="flex items-center gap-1.5">
               <span className="text-lg font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-                apiverse admin
+                APIverse Admin
               </span>
             </Link>
             <div className="hidden md:flex items-center gap-0.5">

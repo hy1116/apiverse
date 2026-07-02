@@ -22,19 +22,22 @@ admin/
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | POST | `/api/admin/auth/login` | role이 ADMIN 아니면 403 |
-| GET | `/api/admin/products` | 전체 상품 목록 |
+| GET | `/api/admin/products` | 전체 상품 목록 (code/upstreamApiKey/upstreamKeyParam 포함) |
 | GET | `/api/admin/products/pending` | 승인 대기 상품 목록 |
+| GET | `/api/admin/products/{id}` | 상품 상세 |
 | PATCH | `/api/admin/products/{id}/approve` | 상품 승인 (isActive=true) |
 | DELETE | `/api/admin/products/{id}/reject` | 승인 대기 상품 반려(삭제). 이미 승인된 상품은 409 |
-| PATCH | `/api/admin/products/{id}` | 상품 수정 (description/baseUrl/category/callsPerSec/isPremium/specJson, null 필드는 무시) |
+| PATCH | `/api/admin/products/{id}` | 상품 수정 (description/baseUrl/category/callsPerSec/responseType/isPremium/specJson/code/upstreamApiKey/upstreamKeyParam, null 필드는 무시) |
 | GET | `/api/admin/inquiries` | 전체 문의 목록 |
 | GET | `/api/admin/inquiries/{id}` | 문의 상세 |
 | POST | `/api/admin/inquiries/{id}/answer` | 답변 등록 (status→ANSWERED) |
 | GET | `/api/admin/users` | 전체 회원 목록 (password_hash 제외) |
 | GET | `/api/admin/users/{id}` | 회원 상세 |
 | PATCH | `/api/admin/users/{id}/tier` | 회원 tier 변경 |
-| GET | `/api/admin/keys` | 전체 API 키 목록 (userEmail/apiProductName 포함) |
+| GET | `/api/admin/keys` | 전체 API 키 목록 (userEmail/apiProductName/whiteListIp 포함) |
+| GET | `/api/admin/keys/{id}` | API 키 상세 |
 | DELETE | `/api/admin/keys/{id}` | API 키 강제 폐기 (소유자 무관) |
+| PATCH | `/api/admin/keys/{id}/whitelist-ip` | 허용 IP 설정 (콤마로 여러 개, 빈 값이면 제한 해제) |
 | GET | `/api/admin/usage/daily` | 전체 유저 대상 7일 일별 요청/에러 통계 |
 
 `/api/admin/auth/login`만 `permitAll`, 나머지는 `authenticated()`.
@@ -47,6 +50,12 @@ admin/
 
 원래는 `tier`에 `ADMIN` 값을 끼워 넣어 사용했으나, 이 경우 회원 tier 변경 API(`PATCH /api/admin/users/{id}/tier`) 하나로 아무 계정이나 관리자로 승격시킬 수 있는 권한 상승 경로가 생겨 `role` 컬럼으로 분리했다. `role`을 바꾸는 API는 의도적으로 만들지 않았다 — 관리자 계정은 DB에서 직접 생성한다 (`gateway/src/main/resources/data.sql`의 `admin@apiverse.com` 시드 참고).
 
+## 상품 code / 업스트림 키
+
+`ApiProduct`의 `upstreamApiKey`/`upstreamKeyParam` 필드는 `@JsonIgnore`가 붙어 있어 엔티티를 그대로 직렬화하면 어떤 컨트롤러에서도 값이 나오지 않는다 (gateway의 공개 `/api/products` 등에서 실수로 노출되는 것을 막기 위한 방어). 그래서 `ProductAdminController`는 다른 admin 컨트롤러들과 달리 `ApiProduct`를 직접 반환하지 않고, `toProductMap()`으로 필요한 필드(코드/업스트림 키 포함)를 명시적으로 담은 `Map`을 반환한다 — 이 패턴을 벗어나 엔티티를 직접 리턴하는 상품 관련 엔드포인트를 새로 추가하면 업스트림 키가 조용히 안 보이게 되므로 주의.
+
+`code`는 `/gateway/{code}/**` 라우팅에 쓰이는 슬러그로, `gateway.md`의 "code 생성" 참고. `upstreamKeyParam`은 `header:{헤더명}` 또는 `query:{파라미터명}` 형식.
+
 ## 인증 및 권한 재검증
 
 - `JwtWebFilter`는 토큰 유효성만 검증하고 role은 확인하지 않는다 — 로그인 시점에만 `AdminAuthController`가 role을 확인.
@@ -56,7 +65,7 @@ admin/
 
 - `UserRepository.findAllByOrderByIdDesc()`
 - `ApiKeyRepository.findAllByOrderByIdDesc()`
-- `ApiProductRepository.findAllByOrderByIdDesc()`
+- `ApiProductRepository.findAllByOrderByIdDesc()`, `findByCode(String code)` (gateway 프록시가 code로 상품 조회할 때 사용)
 - `InquiryRepository.findAllByOrderByCreatedAtDesc()`
 - `BillingLogRepository.findDailyStatsGlobal()` — `findDailyStatsByUserId`와 동일 쿼리에서 `user_id` 필터만 제거
 

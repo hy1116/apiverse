@@ -41,7 +41,7 @@ function LandingNavbar() {
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
             <Link to="/" className="text-lg font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-              apiverse
+              APIverse
             </Link>
             <a href="#apis" className="hidden md:block text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
               API 목록
@@ -146,7 +146,7 @@ function ProductPreview() {
           {/* 스크린샷 */}
           <img
             src="/imgs/dash_board.png"
-            alt="apiverse 대시보드 미리보기"
+            alt="APIverse 대시보드 미리보기"
             className="w-full block"
           />
         </div>
@@ -268,7 +268,7 @@ function HowItWorks() {
     {
       number: '02',
       title: '게이트웨이 호출',
-      description: 'X-API-KEY 헤더에 발급받은 키를 담아 apiverse 게이트웨이를 통해 API를 호출합니다. Rate Limiting이 자동으로 적용됩니다.',
+      description: 'X-API-KEY 헤더에 발급받은 키를 담아 APIverse 게이트웨이를 통해 API를 호출합니다. Rate Limiting이 자동으로 적용됩니다.',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -410,7 +410,7 @@ function Footer() {
     <footer className="border-t border-slate-200 dark:border-gray-800 py-8 bg-slate-50 dark:bg-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <span className="text-base font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
-          apiverse
+          APIverse
         </span>
         <div className="flex items-center gap-6 text-xs text-gray-400 dark:text-gray-500">
           <Link to="/marketplace" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">API 마켓플레이스</Link>

@@ -39,14 +39,28 @@ public class ApiKeyAdminController {
     public Flux<Map<String, Object>> list(@AuthenticationPrincipal Mono<Long> principal) {
         return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
                 .flatMapMany(uid -> apiKeyRepository.findAllByOrderByIdDesc())
-                .flatMap(key -> Mono.zip(
-                                apiProductRepository.findById(key.getApiProductId())
-                                        .map(ApiProduct::getName)
-                                        .defaultIfEmpty("Unknown"),
-                                userRepository.findById(key.getUserId())
-                                        .map(User::getEmail)
-                                        .defaultIfEmpty("Unknown"))
-                        .map(tuple -> toKeyMap(key, tuple.getT1(), tuple.getT2())));
+                .flatMap(this::withLookups);
+    }
+
+    @GetMapping("/{id}")
+    public Mono<ResponseEntity<Map<String, Object>>> detail(@PathVariable Long id,
+                                                            @AuthenticationPrincipal Mono<Long> principal) {
+        return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
+                .flatMap(uid -> apiKeyRepository.findById(id))
+                .flatMap(this::withLookups)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    private Mono<Map<String, Object>> withLookups(ApiKey key) {
+        return Mono.zip(
+                        apiProductRepository.findById(key.getApiProductId())
+                                .map(ApiProduct::getName)
+                                .defaultIfEmpty("Unknown"),
+                        userRepository.findById(key.getUserId())
+                                .map(User::getEmail)
+                                .defaultIfEmpty("Unknown"))
+                .map(tuple -> toKeyMap(key, tuple.getT1(), tuple.getT2()));
     }
 
     @DeleteMapping("/{id}")
@@ -56,6 +70,22 @@ public class ApiKeyAdminController {
                 .flatMap(uid -> apiKeyRepository.findById(id))
                 .flatMap(key -> apiKeyRepository.deleteById(id)
                         .thenReturn(ResponseEntity.status(HttpStatus.NO_CONTENT).<Void>build()))
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    @PatchMapping("/{id}/whitelist-ip")
+    public Mono<ResponseEntity<Map<String, Object>>> updateWhiteListIp(@PathVariable Long id,
+                                                                       @RequestBody UpdateWhiteListIpRequest req,
+                                                                       @AuthenticationPrincipal Mono<Long> principal) {
+        return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
+                .flatMap(uid -> apiKeyRepository.findById(id))
+                .flatMap(key -> {
+                    String value = req.whiteListIp();
+                    key.setWhiteListIp(value == null || value.isBlank() ? null : value.trim());
+                    return apiKeyRepository.save(key);
+                })
+                .flatMap(this::withLookups)
+                .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
@@ -70,6 +100,7 @@ public class ApiKeyAdminController {
         m.put("monthlyQuota",   key.getMonthlyQuota());
         m.put("usedQuota",      key.getUsedQuota());
         m.put("isActive",       key.getIsActive());
+        m.put("whiteListIp",    key.getWhiteListIp());
         return m;
     }
 }

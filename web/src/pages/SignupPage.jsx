@@ -139,7 +139,7 @@ export default function SignupPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col lg:flex-row">
       {/* 왼쪽 브랜딩 패널 */}
       <div className="hidden lg:flex flex-col justify-between w-[420px] shrink-0 bg-gradient-to-b from-indigo-600 to-violet-700 dark:from-indigo-900 dark:to-violet-950 p-10">
-        <span className="text-xl font-bold text-white">apiverse</span>
+        <span className="text-xl font-bold text-white">APIverse</span>
         <div>
           <h2 className="text-3xl font-bold text-white mb-3 leading-snug">
             지루한 B2B 미팅 없이<br />가입 즉시 시작하세요.
@@ -160,7 +160,7 @@ export default function SignupPage() {
       {/* 오른쪽 폼 */}
       <div className="flex-1 flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 lg:hidden">
-          <span className="text-lg font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">apiverse</span>
+          <span className="text-lg font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">APIverse</span>
           <button onClick={toggleTheme} className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
           </button>

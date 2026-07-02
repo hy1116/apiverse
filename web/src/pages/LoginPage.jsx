@@ -33,7 +33,7 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <span className="text-2xl font-bold bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent block mb-4">
-              apiverse
+              APIverse
             </span>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">다시 오셨군요</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">

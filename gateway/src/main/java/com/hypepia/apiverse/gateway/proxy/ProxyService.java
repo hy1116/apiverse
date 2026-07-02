@@ -1,6 +1,7 @@
 package com.hypepia.apiverse.gateway.proxy;
 
 import com.hypepia.apiverse.core.entity.ApiKey;
+import com.hypepia.apiverse.core.entity.ApiProduct;
 import com.hypepia.apiverse.core.entity.BillingLog;
 import com.hypepia.apiverse.core.repository.ApiKeyRepository;
 import com.hypepia.apiverse.core.repository.ApiProductRepository;
@@ -21,7 +22,11 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Service
@@ -34,7 +39,7 @@ public class ProxyService {
     private final RateLimiter rateLimiter;
     private final WebClient.Builder webClientBuilder;
 
-    public Mono<ResponseEntity<String>> proxy(ServerWebExchange exchange, Long productId) {
+    public Mono<ResponseEntity<String>> proxy(ServerWebExchange exchange, String code) {
         String apiKeyValue = exchange.getRequest().getHeaders().getFirst("X-API-KEY");
 
         if (apiKeyValue == null || apiKeyValue.isBlank()) {
@@ -44,18 +49,18 @@ public class ProxyService {
 
         String clientIp = resolveClientIp(exchange);
 
-        return apiKeyRepository.findByApiKeyValue(apiKeyValue)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid API key")))
-                .flatMap(apiKey -> validateKey(apiKey, productId, clientIp))
-                .flatMap(apiKey -> apiProductRepository.findById(productId)
-                        .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found")))
-                        .flatMap(product -> rateLimiter.isAllowed(apiKeyValue, product.getCallsPerSec())
+        return apiProductRepository.findByCode(code)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found")))
+                .flatMap(product -> apiKeyRepository.findByApiKeyValue(apiKeyValue)
+                        .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid API key")))
+                        .flatMap(apiKey -> validateKey(apiKey, product.getId(), clientIp))
+                        .flatMap(apiKey -> rateLimiter.isAllowed(apiKeyValue, product.getCallsPerSec())
                                 .flatMap(allowed -> {
                                     if (!allowed) {
                                         return Mono.just(
                                                 ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Rate limit exceeded"));
                                     }
-                                    return forward(exchange, product.getBaseUrl(), apiKey)
+                                    return forward(exchange, product, apiKey)
                                             .doOnNext(response -> {
                                                 writeBillingLog(exchange, apiKeyValue, response);
                                                 apiKeyRepository.incrementUsedQuota(apiKey.getId())
@@ -85,8 +90,7 @@ public class ProxyService {
         if (!apiKey.getApiProductId().equals(productId)) {
             return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Key is not authorized for this product"));
         }
-        String whiteListIp = apiKey.getWhiteListIp();
-        if (whiteListIp != null && !whiteListIp.isBlank() && !whiteListIp.equals(clientIp)) {
+        if (!isIpAllowed(apiKey.getWhiteListIp(), clientIp)) {
             return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "IP not whitelisted"));
         }
         int quota = apiKey.getMonthlyQuota() != null ? apiKey.getMonthlyQuota() : -1;
@@ -97,11 +101,24 @@ public class ProxyService {
         return Mono.just(apiKey);
     }
 
-    private Mono<ResponseEntity<String>> forward(ServerWebExchange exchange, String baseUrl, ApiKey apiKey) {
+    // whiteListIp가 비어있으면 전체 허용. 콤마로 여러 IP를 등록할 수 있음 (예: "1.2.3.4, 5.6.7.8")
+    static boolean isIpAllowed(String whiteListIp, String clientIp) {
+        if (whiteListIp == null || whiteListIp.isBlank()) {
+            return true;
+        }
+        for (String allowed : whiteListIp.split(",")) {
+            if (allowed.trim().equals(clientIp)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Mono<ResponseEntity<String>> forward(ServerWebExchange exchange, ApiProduct product, ApiKey apiKey) {
         ServerHttpRequest req = exchange.getRequest();
         String subPath   = req.getPath().value().replaceFirst("^/gateway/[^/]+", "");
         String rawQuery  = req.getURI().getRawQuery();
-        String targetUri = baseUrl + subPath + (rawQuery != null ? "?" + rawQuery : "");
+        String baseTargetUri = product.getBaseUrl() + subPath + (rawQuery != null ? "?" + rawQuery : "");
 
         HttpHeaders headers = new HttpHeaders();
         req.getHeaders().forEach((name, values) -> {
@@ -110,6 +127,8 @@ public class ProxyService {
             }
         });
         headers.set("X-API-KEY", apiKey.getApiKeyValue());
+
+        String targetUri = applyUpstreamKey(baseTargetUri, headers, product);
 
         return webClientBuilder.build()
                 .method(req.getMethod())
@@ -121,10 +140,40 @@ public class ProxyService {
                         .map(body -> ResponseEntity.status(res.statusCode())
                                 .contentType(res.headers().contentType().orElse(MediaType.APPLICATION_JSON))
                                 .body(body)))
+                .timeout(Duration.ofSeconds(15))
                 .onErrorResume(WebClientRequestException.class, e -> {
                     log.error("Upstream request failed for {}: {}", targetUri, e.getMessage());
                     return Mono.just(ResponseEntity.status(HttpStatus.BAD_GATEWAY).body("Upstream unavailable"));
+                })
+                .onErrorResume(TimeoutException.class, e -> {
+                    log.error("Upstream request timed out for {}", targetUri);
+                    return Mono.just(ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body("Upstream timeout"));
                 });
+    }
+
+    // upstreamKeyParam 형식: "header:{헤더명}" 또는 "query:{쿼리파라미터명}" — 형식이 이 두 가지가 아니거나
+    // upstreamApiKey/upstreamKeyParam이 비어있으면 아무것도 주입하지 않음 (공개 API 등 키가 필요 없는 상품)
+    private String applyUpstreamKey(String targetUri, HttpHeaders headers, ApiProduct product) {
+        String upstreamKey = product.getUpstreamApiKey();
+        String param = product.getUpstreamKeyParam();
+        if (upstreamKey == null || upstreamKey.isBlank() || param == null || param.isBlank()) {
+            return targetUri;
+        }
+        String[] parts = param.split(":", 2);
+        if (parts.length != 2) {
+            return targetUri;
+        }
+        String type = parts[0].trim();
+        String name = parts[1].trim();
+        if ("header".equalsIgnoreCase(type)) {
+            headers.set(name, upstreamKey);
+            return targetUri;
+        }
+        if ("query".equalsIgnoreCase(type)) {
+            String separator = targetUri.contains("?") ? "&" : "?";
+            return targetUri + separator + name + "=" + URLEncoder.encode(upstreamKey, StandardCharsets.UTF_8);
+        }
+        return targetUri;
     }
 
     private void writeBillingLog(ServerWebExchange exchange, String apiKeyValue,

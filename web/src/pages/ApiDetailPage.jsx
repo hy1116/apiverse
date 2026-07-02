@@ -4,13 +4,14 @@ import SwaggerUI from 'swagger-ui-react'
 import 'swagger-ui-react/swagger-ui.css'
 import Navbar from '../components/Navbar.jsx'
 import client from '../api/client.js'
+import { gatewayCallUrl } from '../utils/gateway.js'
 
 const LANGS = ['curl', 'java', 'javascript', 'python', 'go']
 const LANG_LABELS = { curl: 'Curl', java: 'Java', javascript: 'JavaScript', python: 'Python', go: 'Go' }
 
-function generateSnippet(lang, baseUrl, apiKey) {
+function generateSnippet(lang, callBaseUrl, apiKey) {
   const key = apiKey || 'YOUR_SANDBOX_KEY'
-  const url = `${baseUrl}/endpoint`
+  const url = `${callBaseUrl}/{end-point}`
   return {
     curl:
 `curl -X GET "${url}" \\
@@ -65,7 +66,7 @@ export default function ApiDetailPage() {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [activeTab, setActiveTab] = useState('swagger')
+  const [activeTab, setActiveTab] = useState('snippets')
   const [activeLang, setActiveLang] = useState('curl')
   const [myKey, setMyKey] = useState(null)
   const [issuing, setIssuing] = useState(false)
@@ -122,7 +123,8 @@ export default function ApiDetailPage() {
     }
   }
 
-  const snippet = generateSnippet(activeLang, product.baseUrl, displayKey)
+  const callUrl = gatewayCallUrl(product.code)
+  const snippet = generateSnippet(activeLang, callUrl, displayKey)
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -151,9 +153,24 @@ export default function ApiDetailPage() {
                 }
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 leading-relaxed">{product.description}</p>
-              <code className="inline-block text-xs font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-lg">
-                {product.baseUrl}
-              </code>
+              <div className="mb-1.5">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mr-2">호출 URL</span>
+                <code className="inline-block text-xs font-mono bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-lg">
+                  {callUrl}/…
+                </code>
+              </div>
+              <div className="mb-1.5">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mr-2">업스트림</span>
+                <code className="inline-block text-xs font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-500 px-3 py-1.5 rounded-lg">
+                  {product.baseUrl}
+                </code>
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mr-2">응답 타입</span>
+                <code className="inline-block text-xs font-mono bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-500 px-3 py-1.5 rounded-lg">
+                  {product.responseType ?? 'JSON'}
+                </code>
+              </div>
             </div>
 
             {/* 키 발급 영역 */}
@@ -193,7 +210,7 @@ export default function ApiDetailPage() {
 
         {/* 탭 */}
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800/60 p-1 rounded-xl w-fit mb-6 border border-gray-200 dark:border-gray-700">
-          {[['swagger', 'Swagger UI'], ['snippets', '코드 스니펫']].map(([key, label]) => (
+          {[['snippets', '코드 스니펫'], ...(product.specJson ? [['swagger', 'Swagger UI']] : [])].map(([key, label]) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
@@ -209,7 +226,7 @@ export default function ApiDetailPage() {
         </div>
 
         {/* Swagger UI */}
-        {activeTab === 'swagger' && (
+        {activeTab === 'swagger' && product.specJson && (
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             <SwaggerUI spec={product.specJson} tryItOutEnabled={false} defaultModelsExpandDepth={-1} />
           </div>

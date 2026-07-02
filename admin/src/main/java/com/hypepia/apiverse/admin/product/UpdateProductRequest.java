@@ -6,5 +6,9 @@ public record UpdateProductRequest(
         String category,
         Integer callsPerSec,
         Boolean isPremium,
-        String specJson
+        String responseType,
+        String specJson,
+        String code,
+        String upstreamApiKey,
+        String upstreamKeyParam
 ) {}

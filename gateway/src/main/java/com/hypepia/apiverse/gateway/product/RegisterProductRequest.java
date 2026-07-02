@@ -7,5 +7,6 @@ public record RegisterProductRequest(
         String category,
         Integer callsPerSec,
         Boolean isPremium,
+        String responseType,
         String specJson
 ) {}

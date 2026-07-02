@@ -6,7 +6,7 @@ import Navbar from '../components/Navbar.jsx'
 import client from '../api/client.js'
 
 const CATEGORIES = ['Weather', 'Location', 'Finance', 'Tourism', 'Government', 'AI/ML', 'Communication', 'IoT', 'Other']
-const STEPS = ['스펙 URL 입력', '상품 정보 작성', '등록 완료']
+const STEPS = ['스펙 입력 (선택)', '상품 정보 작성', '등록 완료']
 
 function StepIndicator({ current }) {
   return (
@@ -42,7 +42,7 @@ function InputClass() {
   return 'w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-transparent'
 }
 
-function SpecUrlStep({ onSuccess }) {
+function SpecUrlStep({ onSuccess, onSkip }) {
   const [url, setUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -58,7 +58,7 @@ function SpecUrlStep({ onSuccess }) {
     name: data.info?.title || '',
     description: data.info?.description || '',
     baseUrl: data.servers?.[0]?.url || (data.host ? `${data.schemes?.[0] ?? 'https'}://${data.host}${data.basePath ?? ''}` : ''),
-    category: '', callsPerSec: 5, isPremium: false,
+    category: '', callsPerSec: 5, responseType: 'JSON', isPremium: false,
   })
 
   const handleFetch = async () => {
@@ -99,7 +99,7 @@ function SpecUrlStep({ onSuccess }) {
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         등록하려는 API의 <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-xs">/v3/api-docs</code> 또는{' '}
         <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-xs">swagger.json</code> URL을 입력하세요.
-        Swagger 문서가 없는 API는 등록이 불가합니다.
+        Swagger 문서가 없다면 다음 단계에서 API 정보를 직접 입력할 수 있습니다.
       </p>
 
       <div className="flex gap-2 mb-4">
@@ -154,6 +154,16 @@ function SpecUrlStep({ onSuccess }) {
         <p>· OpenAPI 3.x: <code className="bg-white dark:bg-blue-900/30 px-1 rounded">/v3/api-docs</code> (Spring Boot 기본 경로)</p>
         <p>· Swagger 2.0: <code className="bg-white dark:bg-blue-900/30 px-1 rounded">/v2/api-docs</code> 또는 <code className="bg-white dark:bg-blue-900/30 px-1 rounded">swagger.json</code></p>
       </div>
+
+      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <p className="text-sm text-gray-500 dark:text-gray-400">Swagger 문서가 없으신가요?</p>
+        <button
+          onClick={onSkip}
+          className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+        >
+          Swagger 없이 직접 입력하기 →
+        </button>
+      </div>
     </div>
   )
 }
@@ -163,25 +173,31 @@ function ProductInfoStep({ spec, form, onFormChange, onSubmit, loading, error })
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-        <button
-          onClick={() => setPreviewOpen(!previewOpen)}
-          className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">Swagger UI 미리보기</span>
-            <span className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full font-medium">검증 완료 ✓</span>
-          </div>
-          <svg className={`w-4 h-4 text-gray-400 transition-transform ${previewOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        {previewOpen && (
-          <div className="border-t border-gray-200 dark:border-gray-800 max-h-[480px] overflow-y-auto scrollbar-hide">
-            <SwaggerUI spec={spec} tryItOutEnabled={false} defaultModelsExpandDepth={-1} />
-          </div>
-        )}
-      </div>
+      {spec ? (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+          <button
+            onClick={() => setPreviewOpen(!previewOpen)}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">Swagger UI 미리보기</span>
+              <span className="text-xs px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-full font-medium">검증 완료 ✓</span>
+            </div>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${previewOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {previewOpen && (
+            <div className="border-t border-gray-200 dark:border-gray-800 max-h-[480px] overflow-y-auto scrollbar-hide">
+              <SwaggerUI spec={spec} tryItOutEnabled={false} defaultModelsExpandDepth={-1} />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-700 dark:text-amber-400">
+          💡 Swagger 스펙 없이 등록합니다. 아래 정보를 직접 입력해주세요.
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-5">API 상품 정보</h2>
@@ -189,7 +205,7 @@ function ProductInfoStep({ spec, form, onFormChange, onSubmit, loading, error })
           <div>
             <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">API 상품명 *</label>
             <input type="text" value={form.name} onChange={(e) => onFormChange('name', e.target.value)} className={InputClass()} />
-            <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">스펙의 info.title에서 자동 입력됐습니다.</p>
+            {spec && <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">스펙의 info.title에서 자동 입력됐습니다.</p>}
           </div>
 
           <div>
@@ -215,6 +231,15 @@ function ProductInfoStep({ spec, form, onFormChange, onSubmit, loading, error })
             <div>
               <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">Rate Limit (req/s) *</label>
               <input type="number" min={1} max={1000} value={form.callsPerSec} onChange={(e) => onFormChange('callsPerSec', Number(e.target.value))} className={InputClass()} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">응답 타입</label>
+              <select value={form.responseType} onChange={(e) => onFormChange('responseType', e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400">
+                <option value="JSON">JSON</option>
+                <option value="XML">XML</option>
+                <option value="TEXT">TEXT</option>
+              </select>
             </div>
           </div>
 
@@ -269,6 +294,7 @@ function SuccessStep({ form, navigate }) {
             ['Base URL', form.baseUrl],
             ['카테고리', form.category],
             ['Rate Limit', `${form.callsPerSec} req/s`],
+            ['응답 타입', form.responseType],
             ['플랜', form.isPremium ? 'Pro+ (유료)' : '무료'],
           ].map(([label, value]) => (
             <div key={label} className="flex items-start justify-between gap-4">
@@ -295,13 +321,18 @@ export default function RegisterApiPage() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [spec, setSpec] = useState(null)
-  const [form, setForm] = useState({ name: '', description: '', baseUrl: '', category: '', callsPerSec: 5, isPremium: false })
+  const [form, setForm] = useState({ name: '', description: '', baseUrl: '', category: '', callsPerSec: 5, responseType: 'JSON', isPremium: false })
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
 
   const handleSpecSuccess = ({ spec, form: autoForm }) => {
     setSpec(spec)
     setForm((prev) => ({ ...prev, ...autoForm }))
+    setStep(2)
+  }
+
+  const handleSkipSpec = () => {
+    setSpec(null)
     setStep(2)
   }
 
@@ -315,8 +346,9 @@ export default function RegisterApiPage() {
         baseUrl: form.baseUrl,
         category: form.category,
         callsPerSec: form.callsPerSec,
+        responseType: form.responseType,
         isPremium: form.isPremium,
-        specJson: JSON.stringify(spec),
+        specJson: spec ? JSON.stringify(spec) : null,
       })
       setStep(3)
     } catch (err) {
@@ -340,12 +372,12 @@ export default function RegisterApiPage() {
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">API 상품 등록</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Swagger / OpenAPI 스펙이 적용된 API만 등록 가능합니다.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Swagger / OpenAPI 스펙이 있으면 자동으로, 없으면 직접 입력해 등록할 수 있습니다.</p>
         </div>
 
         <StepIndicator current={step} />
 
-        {step === 1 && <SpecUrlStep onSuccess={handleSpecSuccess} />}
+        {step === 1 && <SpecUrlStep onSuccess={handleSpecSuccess} onSkip={handleSkipSpec} />}
         {step === 2 && <ProductInfoStep spec={spec} form={form} onFormChange={(k, v) => setForm((p) => ({ ...p, [k]: v }))} onSubmit={handleSubmit} loading={submitting} error={submitError} />}
         {step === 3 && <SuccessStep form={form} navigate={navigate} />}
       </div>

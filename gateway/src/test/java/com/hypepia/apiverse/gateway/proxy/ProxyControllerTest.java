@@ -27,10 +27,10 @@ class ProxyControllerTest {
 
     @Test
     void proxy_delegates_to_service_and_returns_200() {
-        given(proxyService.proxy(any(), eq(1L)))
+        given(proxyService.proxy(any(), eq("weather-api")))
                 .willReturn(Mono.just(ResponseEntity.ok("OK")));
 
-        webTestClient.get().uri("/gateway/1/some/path")
+        webTestClient.get().uri("/gateway/weather-api/some/path")
                 .header("X-API-KEY", "apiverse_sandbox_test")
                 .exchange()
                 .expectStatus().isOk()
@@ -39,22 +39,22 @@ class ProxyControllerTest {
 
     @Test
     void proxy_missing_api_key_returns_401() {
-        given(proxyService.proxy(any(), eq(1L)))
+        given(proxyService.proxy(any(), eq("weather-api")))
                 .willReturn(Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body("X-API-KEY header is required")));
 
-        webTestClient.get().uri("/gateway/1/some/path")
+        webTestClient.get().uri("/gateway/weather-api/some/path")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
     void proxy_rate_limited_returns_429() {
-        given(proxyService.proxy(any(), eq(1L)))
+        given(proxyService.proxy(any(), eq("weather-api")))
                 .willReturn(Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                         .body("Rate limit exceeded")));
 
-        webTestClient.get().uri("/gateway/1/some/path")
+        webTestClient.get().uri("/gateway/weather-api/some/path")
                 .header("X-API-KEY", "apiverse_sandbox_test")
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
@@ -62,11 +62,11 @@ class ProxyControllerTest {
 
     @Test
     void proxy_upstream_unavailable_returns_502() {
-        given(proxyService.proxy(any(), eq(1L)))
+        given(proxyService.proxy(any(), eq("weather-api")))
                 .willReturn(Mono.just(ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                         .body("Upstream unavailable")));
 
-        webTestClient.get().uri("/gateway/1/some/path")
+        webTestClient.get().uri("/gateway/weather-api/some/path")
                 .header("X-API-KEY", "apiverse_sandbox_test")
                 .exchange()
                 .expectStatus().isEqualTo(HttpStatus.BAD_GATEWAY);

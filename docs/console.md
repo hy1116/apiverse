@@ -15,11 +15,17 @@ console/src/
 │   ├── Navbar.jsx        대시보드/API 상품/문의/회원/API 키 링크
 │   ├── ProtectedRoute.jsx    미인증 → /login
 │   └── ErrorBoundary.jsx     런타임 에러 화면
-└── pages/                LoginPage, DashboardPage, ProductsPage,
-                          InquiriesPage, UsersPage, ApiKeysPage, NotFoundPage
+└── pages/                LoginPage, DashboardPage,
+                          ProductsPage, ProductDetailPage,
+                          InquiriesPage,
+                          UsersPage, UserDetailPage,
+                          ApiKeysPage, ApiKeyDetailPage,
+                          NotFoundPage
 ```
 
-`web`과 달리 회원가입 페이지가 없다 (관리자 계정은 DB에서 직접 tier='ADMIN'으로 생성).
+`web`과 달리 회원가입 페이지가 없다 (관리자 계정은 DB에서 직접 role='ADMIN'으로 생성).
+
+목록 페이지는 조회/승인처럼 가벼운 액션만 남기고, tier 변경·키 폐기·code/업스트림 키 편집처럼 민감하거나 상세 컨텍스트가 필요한 조작은 전부 상세 페이지(행 클릭 → `/{리소스}/:id`)로 옮겨져 있다.
 
 ## 라우트
 
@@ -27,15 +33,18 @@ console/src/
 |---|---|---|
 | `/login` | LoginPage | 공개 (로그인 시 /dashboard 리다이렉트) |
 | `/dashboard` | DashboardPage | ProtectedRoute — 승인 대기 상품 수 + 7일 요청/에러 통계 |
-| `/products` | ProductsPage | ProtectedRoute — 전체 상품 목록, 승인/반려 |
+| `/products` | ProductsPage | ProtectedRoute — 전체 상품 목록, 승인/반려(목록에서 바로), 행 클릭 시 상세로 |
+| `/products/:id` | ProductDetailPage | ProtectedRoute — code/설명/baseUrl/카테고리/호출제한/프리미엄/업스트림 API 키 편집 |
 | `/inquiries` | InquiriesPage | ProtectedRoute — 전체 문의 목록, 답변 등록 |
-| `/users` | UsersPage | ProtectedRoute — 전체 회원 목록, tier 변경 |
-| `/keys` | ApiKeysPage | ProtectedRoute — 전체 API 키 목록, 강제 폐기 |
+| `/users` | UsersPage | ProtectedRoute — 전체 회원 목록(읽기 전용), 행 클릭 시 상세로 |
+| `/users/:id` | UserDetailPage | ProtectedRoute — 회원 상세, tier 변경은 여기서만 |
+| `/keys` | ApiKeysPage | ProtectedRoute — 전체 API 키 목록(읽기 전용), 행 클릭 시 상세로 |
+| `/keys/:id` | ApiKeyDetailPage | ProtectedRoute — 키 상세, 폐기 및 허용 IP(화이트리스트) 설정은 여기서만 |
 | `*` | NotFoundPage | 공개 (404) |
 
 ## 인증
 
-- `localStorage('av_admin_user')`: `{ id, email, companyName, tier, token }` 저장. `web`의 `av_user`와 키를 다르게 써서 같은 브라우저에서 두 앱을 오가도 세션이 섞이지 않는다.
+- `localStorage('av_admin_user')`: `{ id, email, companyName, tier, role, token }` 저장. `web`의 `av_user`와 키를 다르게 써서 같은 브라우저에서 두 앱을 오가도 세션이 섞이지 않는다.
 - `client.js` 요청 인터셉터: `Authorization: Bearer {token}` 자동 삽입
 - `client.js` 응답 인터셉터: 401 → localStorage 초기화 + `/login` 리다이렉트 (단, `/admin/auth/*` 요청 자체의 401은 리다이렉트하지 않음 — 로그인 실패 메시지를 보여줘야 하므로)
 

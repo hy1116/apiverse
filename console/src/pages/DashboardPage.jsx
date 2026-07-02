@@ -33,8 +33,10 @@ export default function DashboardPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const totalRequests = stats.reduce((sum, s) => sum + s.requests, 0)
+  // usage/daily의 requests는 성공(status<500) 건만 집계하고 에러는 errors에 따로 집계되므로,
+  // "총 요청"은 둘을 합산해야 실제 전체 호출 수가 된다.
   const totalErrors = stats.reduce((sum, s) => sum + s.errors, 0)
+  const totalRequests = stats.reduce((sum, s) => sum + s.requests, 0) + totalErrors
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -48,7 +50,7 @@ export default function DashboardPage() {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <StatCard label="승인 대기 상품" value={pendingCount} accent="amber" />
-              <StatCard label="최근 7일 요청 수" value={totalRequests.toLocaleString()} />
+              <StatCard label="최근 7일 총 요청 수" value={totalRequests.toLocaleString()} />
               <StatCard label="최근 7일 에러 수" value={totalErrors.toLocaleString()} accent="red" />
             </div>
 
@@ -57,7 +59,7 @@ export default function DashboardPage() {
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                     <th className="px-5 py-3">날짜</th>
-                    <th className="px-5 py-3">요청 수</th>
+                    <th className="px-5 py-3">성공 요청</th>
                     <th className="px-5 py-3">에러 수</th>
                   </tr>
                 </thead>

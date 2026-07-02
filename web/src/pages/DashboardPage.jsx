@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import Navbar from '../components/Navbar.jsx'
+import ApiCallInfoModal from '../components/ApiCallInfoModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import client from '../api/client.js'
@@ -121,6 +122,7 @@ export default function DashboardPage() {
   const [productsLoading, setProductsLoading] = useState(true)
   const [usageData, setUsageData] = useState([])
   const [issuingFor, setIssuingFor] = useState(null)
+  const [callInfoProduct, setCallInfoProduct] = useState(null)
   const isDark = theme === 'dark'
 
   useEffect(() => {
@@ -142,10 +144,13 @@ export default function DashboardPage() {
       .catch(() => setUsageData([]))
   }, [])
 
-  const totalRequests = usageData.reduce((s, d) => s + Number(d.requests ?? 0), 0)
+  // usage/daily의 requests는 성공(status<500) 건만 집계하고 에러는 errors에 따로 집계되므로,
+  // "총 요청"은 둘을 합산해야 실제 전체 호출 수가 된다.
+  const successCount  = usageData.reduce((s, d) => s + Number(d.requests ?? 0), 0)
   const totalErrors   = usageData.reduce((s, d) => s + Number(d.errors ?? 0), 0)
+  const totalRequests = successCount + totalErrors
   const successRate   = totalRequests > 0
-    ? (((totalRequests - totalErrors) / totalRequests) * 100).toFixed(1)
+    ? ((successCount / totalRequests) * 100).toFixed(1)
     : '0.0'
 
   const handleIssueKey = async (productId) => {
@@ -171,6 +176,11 @@ export default function DashboardPage() {
         setApiKeys((prev) => prev.filter((k) => k.id !== keyId))
       }
     }
+  }
+
+  const openCallInfo = (productId) => {
+    const product = products.find((p) => p.id === productId)
+    if (product) setCallInfoProduct(product)
   }
 
   const unconnected = products.filter(
@@ -237,7 +247,7 @@ export default function DashboardPage() {
                   key={key.id}
                   apiKey={key}
                   onRevoke={handleRevoke}
-                  onViewDetail={(productId) => navigate(`/marketplace/${productId}`)}
+                  onViewDetail={openCallInfo}
                 />
               ))}
             </div>
@@ -257,7 +267,7 @@ export default function DashboardPage() {
                 <div key={product.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between group hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors">
                   <div>
                     <button
-                      onClick={() => navigate(`/marketplace/${product.id}`)}
+                      onClick={() => openCallInfo(product.id)}
                       className="text-sm font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
                     >
                       {product.name}
@@ -268,7 +278,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => navigate(`/marketplace/${product.id}`)}
+                      onClick={() => openCallInfo(product.id)}
                       className="px-3 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                     >
                       상세보기
@@ -287,6 +297,18 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {callInfoProduct && (
+        <ApiCallInfoModal
+          product={callInfoProduct}
+          apiKeyValue={apiKeys.find((k) => k.apiProductId === callInfoProduct.id)?.apiKeyValue ?? null}
+          onClose={() => setCallInfoProduct(null)}
+          onViewFull={() => {
+            setCallInfoProduct(null)
+            navigate(`/marketplace/${callInfoProduct.id}`)
+          }}
+        />
+      )}
     </div>
   )
 }

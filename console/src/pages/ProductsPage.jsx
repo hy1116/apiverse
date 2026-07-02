@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import client from '../api/client.js'
 
@@ -6,6 +7,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const navigate = useNavigate()
 
   const load = () => {
     setLoading(true)
@@ -17,12 +19,14 @@ export default function ProductsPage() {
 
   useEffect(load, [])
 
-  const approve = async (id) => {
+  const approve = async (e, id) => {
+    e.stopPropagation()
     await client.patch(`/admin/products/${id}/approve`)
     load()
   }
 
-  const reject = async (id) => {
+  const reject = async (e, id) => {
+    e.stopPropagation()
     if (!window.confirm('이 상품을 반려(삭제)하시겠습니까?')) return
     await client.delete(`/admin/products/${id}/reject`)
     load()
@@ -43,6 +47,7 @@ export default function ProductsPage() {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   <th className="px-5 py-3">이름</th>
+                  <th className="px-5 py-3">code</th>
                   <th className="px-5 py-3">카테고리</th>
                   <th className="px-5 py-3">상태</th>
                   <th className="px-5 py-3">프리미엄</th>
@@ -51,11 +56,16 @@ export default function ProductsPage() {
               </thead>
               <tbody>
                 {products.length === 0 && (
-                  <tr><td colSpan={5} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">등록된 상품이 없습니다</td></tr>
+                  <tr><td colSpan={6} className="px-5 py-6 text-center text-gray-400 dark:text-gray-500">등록된 상품이 없습니다</td></tr>
                 )}
                 {products.map((p) => (
-                  <tr key={p.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                  <tr
+                    key={p.id}
+                    onClick={() => navigate(`/products/${p.id}`)}
+                    className="border-b border-gray-100 dark:border-gray-800 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  >
                     <td className="px-5 py-3 text-gray-900 dark:text-white font-medium">{p.name}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">{p.code ?? '-'}</td>
                     <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{p.category ?? '-'}</td>
                     <td className="px-5 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -71,13 +81,13 @@ export default function ProductsPage() {
                       {!p.isActive && (
                         <>
                           <button
-                            onClick={() => approve(p.id)}
+                            onClick={(e) => approve(e, p.id)}
                             className="text-xs px-2.5 py-1 rounded-lg font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
                           >
                             승인
                           </button>
                           <button
-                            onClick={() => reject(p.id)}
+                            onClick={(e) => reject(e, p.id)}
                             className="text-xs px-2.5 py-1 rounded-lg font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
                           >
                             반려

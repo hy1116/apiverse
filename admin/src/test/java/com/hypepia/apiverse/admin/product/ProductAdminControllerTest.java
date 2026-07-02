@@ -90,6 +90,44 @@ class ProductAdminControllerTest {
                 .jsonPath("$[0].name").isEqualTo("신규 API");
     }
 
+    // ── GET /api/admin/products/{id} ─────────────────────────────────────────
+
+    @Test
+    void detail_admin_returns_product_with_upstream_fields() {
+        ApiProduct withUpstream = ACTIVE_PRODUCT.toBuilder()
+                .code("weather-api").upstreamApiKey("secret-key").upstreamKeyParam("query:serviceKey").build();
+
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiProductRepository.findById(2L)).willReturn(Mono.just(withUpstream));
+
+        asUser(1L).get().uri("/api/admin/products/2")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.code").isEqualTo("weather-api")
+                .jsonPath("$.upstreamApiKey").isEqualTo("secret-key")
+                .jsonPath("$.upstreamKeyParam").isEqualTo("query:serviceKey");
+    }
+
+    @Test
+    void detail_not_found_returns_404() {
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiProductRepository.findById(99L)).willReturn(Mono.empty());
+
+        asUser(1L).get().uri("/api/admin/products/99")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void detail_non_admin_returns_403() {
+        given(userRepository.findById(2L)).willReturn(Mono.just(REGULAR));
+
+        asUser(2L).get().uri("/api/admin/products/2")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
     // ── PATCH /api/admin/products/{id}/approve ───────────────────────────────
 
     @Test
@@ -156,5 +194,25 @@ class ProductAdminControllerTest {
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.description").isEqualTo("수정된 설명");
+    }
+
+    @Test
+    void update_admin_can_set_code_and_upstream_key() {
+        ApiProduct updated = ACTIVE_PRODUCT.toBuilder()
+                .code("weather-api").upstreamApiKey("secret-key").upstreamKeyParam("query:serviceKey").build();
+
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiProductRepository.findById(2L)).willReturn(Mono.just(ACTIVE_PRODUCT));
+        given(apiProductRepository.save(any())).willReturn(Mono.just(updated));
+
+        asUser(1L).patch().uri("/api/admin/products/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("code", "weather-api", "upstreamApiKey", "secret-key", "upstreamKeyParam", "query:serviceKey"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.code").isEqualTo("weather-api")
+                .jsonPath("$.upstreamApiKey").isEqualTo("secret-key")
+                .jsonPath("$.upstreamKeyParam").isEqualTo("query:serviceKey");
     }
 }

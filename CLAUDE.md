@@ -102,8 +102,10 @@ React 18 SPA (어드민용). `admin-api.apiverse.com`(8090)으로 프록시.
 
 ```
 users           id, email (UNIQUE), password_hash, company_name, phone, tier, role, created_at
-api_products    id, name (UNIQUE), description, base_url, is_premium, is_active,
-                category, calls_per_sec, spec_json
+api_products    id, name (UNIQUE), code (UNIQUE, /gateway/{code}/** 라우팅용),
+                description, base_url, is_premium, is_active,
+                category, calls_per_sec, response_type ('JSON'|'XML'|'TEXT'), spec_json,
+                upstream_api_key, upstream_key_param ('header:{name}'|'query:{name}')
 api_keys        id, user_id → users, api_product_id → api_products,
                 api_key_value (UNIQUE), white_list_ip,
                 monthly_quota (-1=무제한), used_quota, is_active, created_at
@@ -113,4 +115,4 @@ inquiries       id, user_id → users, title, content,
                 status ('PENDING'|'ANSWERED'), answer, created_at, answered_at
 ```
 
-Index: `idx_api_key_value ON api_keys(api_key_value)`, `api_products_name_unique ON api_products(name)`.
+Index: `idx_api_key_value ON api_keys(api_key_value)`, `api_products_name_unique ON api_products(name)`, `api_products_code_unique ON api_products(code)`.
