@@ -71,6 +71,7 @@ Runnable Spring Boot app. `@SpringBootApplication(scanBasePackages = "com.hypepi
 |---|---|---|
 | `config` | `SecurityConfig`, `JwtUtils`, `JwtWebFilter` | WebFlux Security, JWT 생성/검증/필터 |
 | `auth` | `AuthController` | 회원가입, 로그인, 이메일 중복 확인 |
+| `profile` | `ProfileController`, `UpdateProfileRequest` | 내 정보 조회/수정 (companyName/phone) |
 | `product` | `ApiProductController`, `RegisterProductRequest` | 상품 CRUD + 승인 플로우 |
 | `key` | `ApiKeyController` | API 키 발급/목록/폐기 |
 | `usage` | `UsageController` | 7일 일별 호출 통계 (로그인 유저 본인 것만) |
@@ -101,11 +102,12 @@ React 18 SPA (어드민용). `admin-api.apiverse.com`(8090)으로 프록시.
 ## DB Schema
 
 ```
-users           id, email (UNIQUE), password_hash, company_name, phone, tier, role, created_at
+users           id, email (UNIQUE), password_hash, company_name, phone, tier, role, created_at, updated_at
 api_products    id, name (UNIQUE), code (UNIQUE, /gateway/{code}/** 라우팅용),
                 description, base_url, is_premium, is_active,
                 category, calls_per_sec, response_type ('JSON'|'XML'|'TEXT'), spec_json,
-                upstream_api_key, upstream_key_param ('header:{name}'|'query:{name}')
+                upstream_api_key, upstream_key_param ('header:{name}'|'query:{name}'),
+                created_by → users (등록자, 본인 등록 상품 진행 상황 조회용)
 api_keys        id, user_id → users, api_product_id → api_products,
                 api_key_value (UNIQUE), white_list_ip,
                 monthly_quota (-1=무제한), used_quota, is_active, created_at
@@ -113,6 +115,7 @@ billing_logs    id, api_key_value, request_path, http_method, response_status,
                 client_ip, request_time
 inquiries       id, user_id → users, title, content,
                 status ('PENDING'|'ANSWERED'), answer, created_at, answered_at
+blocked_ips     id, ip_address (UNIQUE), reason, created_at (전역 /gateway/** 차단 목록)
 ```
 
 Index: `idx_api_key_value ON api_keys(api_key_value)`, `api_products_name_unique ON api_products(name)`, `api_products_code_unique ON api_products(code)`.

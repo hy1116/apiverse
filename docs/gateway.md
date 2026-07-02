@@ -8,6 +8,7 @@ Spring Boot 앱. `@SpringBootApplication(scanBasePackages = "com.hypepia.apivers
 gateway/
 ├── config/     SecurityConfig, JwtUtils, JwtWebFilter
 ├── auth/       AuthController
+├── profile/    ProfileController, UpdateProfileRequest
 ├── product/    ApiProductController, RegisterProductRequest
 ├── key/        ApiKeyController
 ├── usage/      UsageController
@@ -24,14 +25,18 @@ gateway/
 |---|---|---|
 | POST | `/api/auth/signup`, `/api/auth/login` | 불필요 |
 | GET | `/api/auth/check-email` | 불필요 |
+| GET | `/api/profile` | 필요 (내 정보 조회) |
+| PATCH | `/api/profile` | 필요 (companyName/phone 수정, null 필드는 무시·빈 문자열은 초기화) |
 | GET | `/api/products` | 불필요 |
 | GET | `/api/products/{id}` | 불필요 |
 | GET | `/api/products/{id}/my-key` | 선택 (비로그인 시 `{}`) |
 | POST | `/api/products` | 필요 (isActive=false로 저장, 승인 대기) |
+| GET | `/api/products/my` | 필요 (내가 등록한 상품 목록, 승인 대기/승인 상태 확인용) |
 | GET | `/api/products/pending` | ADMIN |
 | PATCH | `/api/products/{id}/approve` | ADMIN |
 | GET/POST/DELETE | `/api/keys`, `/api/keys/{id}` | 필요 |
 | GET | `/api/usage/daily` | 필요 (본인 키 데이터만) |
+| GET | `/api/usage/logs` | 필요 (본인 키 데이터만, `apiProductId`로 API별 필터·`onlyErrors`·`days`(기본 7, 최대 90)·`page`/`size`(최대 200) 페이지네이션) |
 | POST/GET/DELETE | `/api/inquiries`, `/api/inquiries/{id}` | 필요 (본인 것만) |
 | POST | `/api/inquiries/{id}/answer` | ADMIN |
 | ANY | `/gateway/{code}/**` | X-API-KEY 헤더 |
@@ -40,11 +45,13 @@ gateway/
 
 ```
 permitAll       : /api/auth/**, GET /api/products, GET /api/products/*, /gateway/**
-authenticated   : GET /api/products/pending  ← 반드시 /api/products/* 보다 앞에 선언
+authenticated   : GET /api/products/pending, GET /api/products/my  ← 반드시 /api/products/* 보다 앞에 선언
 authenticated   : 그 외 모든 경로 (catch-all)
 ```
 
-`/api/products/pending`을 `/api/products/*` permitAll 뒤에 두면 먼저 매칭되어 허가됨 — 순서가 핵심.
+`/api/products/pending`, `/api/products/my`를 `/api/products/*` permitAll 뒤에 두면 먼저 매칭되어 허가됨 — 순서가 핵심.
+
+`ProfileController`가 `/api/auth/me`가 아닌 `/api/profile`을 쓰는 이유도 같은 함정을 피하기 위해서다 — `/api/auth/**`가 통째로 permitAll이라 그 하위 경로에 인증이 필요한 엔드포인트를 추가하려면 `/api/products/pending`처럼 예외 규칙을 앞에 선언해야 하는데, 아예 `/api/auth/**` 밖의 경로를 쓰면 `anyExchange().authenticated()` catch-all로 자동으로 인증이 강제되어 SecurityConfig를 건드릴 필요가 없다.
 
 ## 인증
 
@@ -55,7 +62,8 @@ authenticated   : 그 외 모든 경로 (catch-all)
 ## 프록시 흐름 (ProxyService)
 
 ```
-/gateway/{code}/** → api_products.code로 상품 조회 (product_id 대신 사용 — DB PK 비노출)
+/gateway/{code}/** → 클라이언트 IP가 blocked_ips에 있으면 즉시 403 (API 키 검증보다 먼저)
+→ api_products.code로 상품 조회 (product_id 대신 사용 — DB PK 비노출)
 → X-API-KEY 헤더 → ApiKey 조회 → isActive/apiProductId/IP 화이트리스트 검증
 → 월 쿼터 확인 (monthlyQuota=-1 무제한)
 → Redis Token Bucket (callsPerSec 기준, 초과 시 429)
@@ -78,6 +86,12 @@ Token Bucket Redis 키: `rate_limit:{apiKeyValue}`. 밀리토큰(×1000) 저장 
 ### IP 화이트리스트
 
 `api_keys.white_list_ip`가 비어있으면 제한 없음. 값이 있으면 `ProxyService.isIpAllowed()`가 콤마로 구분된 목록(예: `1.2.3.4,5.6.7.8`) 중 하나와 클라이언트 IP가 일치하는지 확인하고, 불일치 시 403 "IP not whitelisted"를 반환한다. 클라이언트 IP는 `X-Forwarded-For`(첫 번째 값) 우선, 없으면 소켓의 remote address를 사용(`resolveClientIp()`). admin 모듈의 `PATCH /api/admin/keys/{id}/whitelist-ip`로 값을 설정한다 (`docs/admin.md` 참고).
+
+`resolveClientIp()`는 소켓 주소를 `toIPv4IfPossible()`로 정규화한다 — 로컬 개발 환경 등에서 소켓 remote address가 IPv6(`::1`, IPv4-mapped `::ffff:a.b.c.d`)로 잡히는 경우가 있는데, 화이트리스트/차단 목록은 보통 IPv4로 등록하므로 표기가 다르면 매칭이 실패한다. `::1`은 `127.0.0.1`로, `::ffff:a.b.c.d` 형태는 마지막 4바이트를 추출해 `a.b.c.d`로 변환한다.
+
+### 전역 IP 차단
+
+`api_keys.white_list_ip`(회원별 허용 목록)와 별개로, `blocked_ips` 테이블에 등록된 IP는 API 키/상품과 무관하게 `/gateway/**` 요청 전체가 차단된다. `ProxyService.proxy()`가 API 키 검증보다 먼저 `blockedIpRepository.findByIpAddress(clientIp)`를 조회해 존재하면 즉시 403 "IP blocked"를 반환한다. admin 모듈의 `GET/POST /api/admin/blocked-ips`, `DELETE /api/admin/blocked-ips/{id}`로 관리한다 (`docs/admin.md` 참고).
 
 ### code 생성 (상품 등록 시)
 

@@ -12,7 +12,9 @@ admin/
 ├── inquiry/    InquiryAdminController, AnswerRequest
 ├── user/       UserAdminController, UpdateTierRequest
 ├── key/        ApiKeyAdminController
-└── usage/      UsageAdminController
+├── usage/      UsageAdminController
+├── blockedip/  BlockedIpAdminController, AddBlockedIpRequest
+└── stats/      StatsAdminController
 ```
 
 요청 DTO(`XxxRequest`)는 gateway와 동일하게 해당 기능 패키지에 위치.
@@ -38,9 +40,40 @@ admin/
 | GET | `/api/admin/keys/{id}` | API 키 상세 |
 | DELETE | `/api/admin/keys/{id}` | API 키 강제 폐기 (소유자 무관) |
 | PATCH | `/api/admin/keys/{id}/whitelist-ip` | 허용 IP 설정 (콤마로 여러 개, 빈 값이면 제한 해제) |
+| PATCH | `/api/admin/keys/{id}/quota` | 월간 쿼터 설정 (`monthlyQuota`: -1=무제한 또는 0 이상, 그 외 값은 400) |
 | GET | `/api/admin/usage/daily` | 전체 유저 대상 7일 일별 요청/에러 통계 |
+| GET | `/api/admin/usage/logs` | `billing_logs` 원본 목록, `onlyErrors`(5xx만)/`days`(기본 7, 최대 90)/`page`/`size`(최대 200) 페이지네이션 |
+| GET | `/api/admin/blocked-ips` | 전역 차단 IP 목록 |
+| POST | `/api/admin/blocked-ips` | 차단 IP 추가 (`ipAddress`, `reason` 선택), 중복 시 409 |
+| DELETE | `/api/admin/blocked-ips/{id}` | 차단 해제 |
+| GET | `/api/admin/stats/products-errors` | 상품별 에러율 랭킹 — 호출량 대비 5xx 비율 내림차순 (`days` 기본 7, 최대 90) |
+| GET | `/api/admin/stats/top-error-keys` | 에러 많은 API 키 Top N — 에러 건수 기준 (`days`, `limit` 기본 20 최대 100) |
+| GET | `/api/admin/stats/status-codes` | 상태코드 분포 (`days`) |
+| GET | `/api/admin/stats/products-usage` | 상품별 사용량 랭킹 — 호출량 기준 (`days`) |
+| GET | `/api/admin/stats/top-usage-keys` | 호출량 많은 API 키 Top N — 에러 유무 무관 (`days`, `limit`) |
+| GET | `/api/admin/stats/quota-usage` | 월 쿼터 사용률 Top N, `monthlyQuota=-1`(무제한) 제외 (`limit`) |
 
 `/api/admin/auth/login`만 `permitAll`, 나머지는 `authenticated()`.
+
+## 전역 IP 차단
+
+`blocked_ips` 테이블에 등록된 IP는 API 키/상품 승인 여부와 무관하게 `/gateway/**` 요청 자체가 `ProxyService.proxy()` 최상단(API 키 검증보다 먼저)에서 403으로 거부된다 (`gateway.md`의 "전역 IP 차단" 참고). 회원별 API 키 화이트리스트(`api_keys.white_list_ip`, "허용" 목록)와는 반대 개념(전역 "차단" 목록)이며 서로 독립적으로 동작한다.
+
+## 통계 (StatsAdminController)
+
+에러 대응(트리아지)용 3종 + 사용률(용량 계획)용 3종, 총 6개 통계. `days`는 1~90 사이로 clamp.
+
+**에러 대응용:**
+- **상품별 에러율 랭킹**(`products-errors`): `billing_logs` ⟕ `api_keys` ⟕ `api_products` 조인 후 상품별 전체 요청/5xx 건수 집계, `error_count::float / total_requests` 내림차순 — 호출량이 적어도 실패율이 높으면 상위에 노출되어야 하므로 건수가 아닌 비율로 정렬한다.
+- **에러 많은 API 키 Top N**(`top-error-keys`): 위 조인에 `users`까지 더해 API 키/회원 단위로 집계, 에러 건수 기준 정렬, 에러가 0건 초과인 것만(`HAVING`) 반환. 특정 연동사의 통합 문제인지 식별.
+- **상태코드 분포**(`status-codes`): `response_status`별 건수. 4xx(클라이언트 오류)와 5xx(서버/업스트림 오류) 비중 구분용.
+
+**사용률(용량 계획)용:**
+- **상품별 사용량 랭킹**(`products-usage`): `products-errors`와 동일 집계, 정렬만 `total_requests` 기준 — 어떤 상품이 가장 많이 호출되는지.
+- **호출량 많은 API 키 Top N**(`top-usage-keys`): `top-error-keys`와 동일 집계, `HAVING` 없이 전체 대상 + `total_requests` 기준 정렬.
+- **월 쿼터 사용률 Top N**(`quota-usage`): `billing_logs` 조인 없이 `api_keys` ⟕ `users` ⟕ `api_products`만으로 `used_quota / monthly_quota` 계산, `monthly_quota = -1`(무제한) 제외. 쿼터 소진 임박 회원을 미리 파악하는 용도라 `days` 파라미터가 없다(현재 시점 스냅샷).
+
+쿼리는 `BillingLogRepository`(5종)와 `ApiKeyRepository`(`quota-usage` 1종)에 나뉘어 있으며, 기간 조건은 `NOW() - (INTERVAL '1 day' * :days)`로 파라미터화한다(문자열 결합 대신 interval 곱셈 사용 — R2DBC 바인딩 파라미터로 안전하게 처리).
 
 ## role vs tier
 
@@ -68,6 +101,7 @@ admin/
 - `ApiProductRepository.findAllByOrderByIdDesc()`, `findByCode(String code)` (gateway 프록시가 code로 상품 조회할 때 사용)
 - `InquiryRepository.findAllByOrderByCreatedAtDesc()`
 - `BillingLogRepository.findDailyStatsGlobal()` — `findDailyStatsByUserId`와 동일 쿼리에서 `user_id` 필터만 제거
+- `BillingLogRepository.findLogsPage(onlyErrors, days, size, offset)` / `countLogs(onlyErrors, days)` — `/api/admin/usage/logs` 페이지네이션용. `onlyErrors=true`면 `response_status >= 500`(usage/daily의 errors와 동일 기준)만 반환. `days`로 조회 기간 상한(컨트롤러에서 1~90 clamp) — 무제한 전체 테이블 스캔 방지
 
 ## 빌드 관련 주의사항
 
