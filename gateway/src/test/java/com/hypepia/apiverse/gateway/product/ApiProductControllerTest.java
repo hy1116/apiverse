@@ -134,6 +134,23 @@ class ApiProductControllerTest {
                 .expectBody().json("{}");
     }
 
+    // ── GET /api/products/my ─────────────────────────────────────────────────
+
+    @Test
+    void listMine_returns_products_created_by_current_user() {
+        given(apiProductRepository.findAllByCreatedByOrderByIdDesc(1L))
+                .willReturn(Flux.just(WEATHER_API));
+
+        webTestClient.mutateWith(mockAuthentication(
+                        new UsernamePasswordAuthenticationToken(1L, null, List.of())))
+                .get().uri("/api/products/my")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0].name").isEqualTo("기상청 날씨 API");
+    }
+
     // ── extractDomainSlug (code 생성) ─────────────────────────────────────────
 
     @Test

@@ -306,8 +306,8 @@ function SuccessStep({ form, navigate }) {
       </div>
 
       <div className="flex gap-3 justify-center">
-        <button onClick={() => navigate('/marketplace')} className="px-5 py-2.5 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
-          마켓플레이스 보기
+        <button onClick={() => navigate('/marketplace/my')} className="px-5 py-2.5 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+          등록 진행 상황 확인
         </button>
         <button onClick={() => window.location.reload()} className="px-5 py-2.5 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-semibold rounded-xl transition-colors">
           또 다른 API 등록

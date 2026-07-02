@@ -9,5 +9,6 @@ public interface ApiProductRepository extends ReactiveCrudRepository<ApiProduct,
     Flux<ApiProduct> findAllByIsActiveTrueOrderByIsPremiumAsc();
     Flux<ApiProduct> findAllByIsActiveFalseOrderByIdDesc();
     Flux<ApiProduct> findAllByOrderByIdDesc();
+    Flux<ApiProduct> findAllByCreatedByOrderByIdDesc(Long createdBy);
     Mono<ApiProduct> findByCode(String code);
 }

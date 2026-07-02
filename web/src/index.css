@@ -73,6 +73,18 @@
   color: #94a3b8 !important;
 }
 
+/* 사이즈 조정 */
+.swagger-ui .info{
+  margin: 30px 0 20px 0 !important;
+}
+.swagger-ui .title{
+  font-size: 1.25rem !important;
+}
+
+.swagger-ui .title span{
+  vertical-align: -webkit-baseline-middle;
+}
+
 /* 서버 URL */
 .dark .swagger-ui .servers > label,
 .dark .swagger-ui .servers-title,

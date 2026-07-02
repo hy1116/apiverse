@@ -74,6 +74,7 @@ public class ApiProductController {
                             .isPremium(Boolean.TRUE.equals(req.isPremium()))
                             .isActive(false)
                             .specJson(req.specJson())
+                            .createdBy(uid)
                             .build();
                     return apiProductRepository.save(product)
                             .map(saved -> ResponseEntity.status(HttpStatus.CREATED).body(saved));
@@ -129,6 +130,12 @@ public class ApiProductController {
             slug = slug.substring(0, slug.length() - 1);
         }
         return slug.isEmpty() ? "api-" + UUID.randomUUID().toString().substring(0, 8) : slug;
+    }
+
+    // 내가 등록한 상품 목록 (승인 대기/승인 상태 확인용)
+    @GetMapping("/my")
+    public Flux<ApiProduct> listMine(@AuthenticationPrincipal Mono<Long> principal) {
+        return principal.flatMapMany(apiProductRepository::findAllByCreatedByOrderByIdDesc);
     }
 
     // ADMIN 전용 — 승인 대기 중인 상품 목록

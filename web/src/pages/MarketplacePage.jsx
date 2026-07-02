@@ -81,13 +81,21 @@ export default function MarketplacePage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">API 마켓플레이스</h1>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">가입 즉시 Sandbox 키를 발급받아 테스트하세요.</p>
           </div>
-          <Link
-            to="/marketplace/register"
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm whitespace-nowrap"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            API 등록
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              to="/marketplace/my"
+              className="flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-sm font-semibold rounded-xl transition-colors whitespace-nowrap"
+            >
+              내 등록 상품
+            </Link>
+            <Link
+              to="/marketplace/register"
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm whitespace-nowrap"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              API 등록
+            </Link>
+          </div>
         </div>
 
         {/* 검색 + 필터 */}

@@ -43,6 +43,10 @@ public class ApiProduct {
     @Column("calls_per_sec")
     private Integer callsPerSec;
 
+    // 상품을 등록한 유저 — 등록자가 자신의 등록 상품 진행 상황(승인 대기/승인됨)을 조회할 때 사용
+    @Column("created_by")
+    private Long createdBy;
+
     // 업스트림 응답 형식 — JSON/XML/TEXT 중 하나 (프론트에서 안내용으로만 사용, 실제 파싱/변환은 하지 않음)
     @Builder.Default
     @Column("response_type")
