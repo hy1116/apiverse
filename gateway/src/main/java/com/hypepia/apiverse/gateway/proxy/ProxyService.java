@@ -6,6 +6,7 @@ import com.hypepia.apiverse.core.entity.BillingLog;
 import com.hypepia.apiverse.core.repository.ApiKeyRepository;
 import com.hypepia.apiverse.core.repository.ApiProductRepository;
 import com.hypepia.apiverse.core.repository.BillingLogRepository;
+import com.hypepia.apiverse.core.repository.BlockedIpRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -21,8 +22,11 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -36,18 +40,26 @@ public class ProxyService {
     private final ApiKeyRepository apiKeyRepository;
     private final ApiProductRepository apiProductRepository;
     private final BillingLogRepository billingLogRepository;
+    private final BlockedIpRepository blockedIpRepository;
     private final RateLimiter rateLimiter;
     private final WebClient.Builder webClientBuilder;
 
     public Mono<ResponseEntity<String>> proxy(ServerWebExchange exchange, String code) {
+        String clientIp = resolveClientIp(exchange);
+
+        return blockedIpRepository.findByIpAddress(clientIp)
+                .<ResponseEntity<String>>flatMap(blocked -> Mono.just(
+                        ResponseEntity.status(HttpStatus.FORBIDDEN).body("IP blocked")))
+                .switchIfEmpty(Mono.defer(() -> doProxy(exchange, code, clientIp)));
+    }
+
+    private Mono<ResponseEntity<String>> doProxy(ServerWebExchange exchange, String code, String clientIp) {
         String apiKeyValue = exchange.getRequest().getHeaders().getFirst("X-API-KEY");
 
         if (apiKeyValue == null || apiKeyValue.isBlank()) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("X-API-KEY header is required"));
         }
-
-        String clientIp = resolveClientIp(exchange);
 
         return apiProductRepository.findByCode(code)
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found")))
@@ -80,7 +92,27 @@ public class ProxyService {
             return forwarded.split(",")[0].trim();
         }
         InetSocketAddress remote = exchange.getRequest().getRemoteAddress();
-        return remote != null ? remote.getAddress().getHostAddress() : "unknown";
+        return remote != null ? toIPv4IfPossible(remote.getAddress()) : "unknown";
+    }
+
+    // 로컬 개발 환경 등에서 소켓 주소가 IPv6(::1, ::ffff:a.b.c.d)로 잡히는 경우를 IPv4 표기로 정규화
+    // — 화이트리스트/차단 목록에 등록하는 IP는 보통 IPv4라서 표기가 다르면 매칭이 실패한다.
+    static String toIPv4IfPossible(InetAddress address) {
+        if (!(address instanceof Inet6Address v6)) {
+            return address.getHostAddress();
+        }
+        if (v6.isLoopbackAddress()) {
+            return "127.0.0.1";
+        }
+        byte[] bytes = v6.getAddress();
+        if (bytes.length == 16 && bytes[10] == (byte) 0xff && bytes[11] == (byte) 0xff) {
+            try {
+                return InetAddress.getByAddress(new byte[]{bytes[12], bytes[13], bytes[14], bytes[15]}).getHostAddress();
+            } catch (UnknownHostException e) {
+                return address.getHostAddress();
+            }
+        }
+        return address.getHostAddress();
     }
 
     private Mono<ApiKey> validateKey(ApiKey apiKey, Long productId, String clientIp) {

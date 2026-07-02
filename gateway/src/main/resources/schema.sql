@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone       VARCHAR(20),
     tier        VARCHAR(20) DEFAULT 'FREE',
     role        VARCHAR(20) DEFAULT 'USER',
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS api_products (
@@ -39,6 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_api_key_value ON api_keys(api_key_value);
 -- 기존 테이블에 누락된 컬럼 추가 (이미 있으면 무시)
 ALTER TABLE users        ADD COLUMN IF NOT EXISTS phone         VARCHAR(20);
 ALTER TABLE users        ADD COLUMN IF NOT EXISTS role          VARCHAR(20) DEFAULT 'USER';
+ALTER TABLE users        ADD COLUMN IF NOT EXISTS updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS category      VARCHAR(50);
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS calls_per_sec INT DEFAULT 5;
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS spec_json     TEXT;
@@ -46,6 +48,7 @@ ALTER TABLE api_products ADD COLUMN IF NOT EXISTS code               VARCHAR(120
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS upstream_api_key   VARCHAR(255);
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS upstream_key_param VARCHAR(100);
 ALTER TABLE api_products ADD COLUMN IF NOT EXISTS response_type      VARCHAR(20) DEFAULT 'JSON';
+ALTER TABLE api_products ADD COLUMN IF NOT EXISTS created_by          BIGINT REFERENCES users(id);
 
 -- response_type 컬럼 추가 이전 데이터 백필
 UPDATE api_products SET response_type = 'JSON' WHERE response_type IS NULL;
@@ -82,4 +85,12 @@ CREATE TABLE IF NOT EXISTS billing_logs (
     response_status INT NOT NULL,
     client_ip       VARCHAR(50),
     request_time    TIMESTAMP NOT NULL
+);
+
+-- /gateway/** 전역 접근 차단 IP 목록 (API 키/상품과 무관하게 ProxyService 최우선 검사)
+CREATE TABLE IF NOT EXISTS blocked_ips (
+    id          BIGSERIAL PRIMARY KEY,
+    ip_address  VARCHAR(50) NOT NULL UNIQUE,
+    reason      VARCHAR(255),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
