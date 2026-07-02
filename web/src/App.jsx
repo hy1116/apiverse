@@ -10,6 +10,9 @@ import DashboardPage from './pages/DashboardPage.jsx'
 import MarketplacePage from './pages/MarketplacePage.jsx'
 import ApiDetailPage from './pages/ApiDetailPage.jsx'
 import RegisterApiPage from './pages/RegisterApiPage.jsx'
+import MyProductsPage from './pages/MyProductsPage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
+import LogsPage from './pages/LogsPage.jsx'
 import InquiryPage from './pages/InquiryPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
@@ -31,8 +34,11 @@ export default function App() {
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
               <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
               <Route path="/marketplace/register" element={<ProtectedRoute><RegisterApiPage /></ProtectedRoute>} />
+              <Route path="/marketplace/my" element={<ProtectedRoute><MyProductsPage /></ProtectedRoute>} />
               <Route path="/marketplace/:id" element={<ApiDetailPage />} />
               <Route path="/inquiry" element={<ProtectedRoute><InquiryPage /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>

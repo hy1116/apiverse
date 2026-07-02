@@ -29,6 +29,7 @@ export default function Navbar() {
   const navLinks = [
     { to: '/dashboard', label: '대시보드' },
     { to: '/marketplace', label: 'API 마켓플레이스' },
+    { to: '/logs', label: '요청 로그' },
   ]
 
   const handleLogout = () => {
@@ -106,6 +107,13 @@ export default function Navbar() {
                         {user?.tier} 플랜
                       </span>
                     </div>
+                    <Link
+                      to="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      내 정보 수정
+                    </Link>
                     <Link
                       to="/inquiry"
                       onClick={() => setDropdownOpen(false)}

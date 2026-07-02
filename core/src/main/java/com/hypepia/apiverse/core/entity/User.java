@@ -38,4 +38,7 @@ public class User {
 
     @Column("created_at")
     private LocalDateTime createdAt;
+
+    @Column("updated_at")
+    private LocalDateTime updatedAt;
 }
