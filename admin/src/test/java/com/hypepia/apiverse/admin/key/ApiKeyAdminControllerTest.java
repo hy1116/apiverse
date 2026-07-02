@@ -214,4 +214,78 @@ class ApiKeyAdminControllerTest {
                 .exchange()
                 .expectStatus().isForbidden();
     }
+
+    // ── PATCH /api/admin/keys/{id}/quota ─────────────────────────────────────
+
+    @Test
+    void updateQuota_admin_sets_limited_value() {
+        ApiKey key = ApiKey.builder().id(13L).userId(5L).apiProductId(1L)
+                .apiKeyValue("apiverse_sandbox_xyz").isActive(true).monthlyQuota(-1).build();
+
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(13L)).willReturn(Mono.just(key));
+        given(apiKeyRepository.save(key)).willReturn(Mono.just(key));
+        given(apiProductRepository.findById(1L)).willReturn(Mono.just(PRODUCT));
+        given(userRepository.findById(5L)).willReturn(Mono.just(KEY_OWNER));
+
+        asUser(1L).patch().uri("/api/admin/keys/13/quota")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("monthlyQuota", 1000))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.monthlyQuota").isEqualTo(1000);
+    }
+
+    @Test
+    void updateQuota_minus_one_sets_unlimited() {
+        ApiKey key = ApiKey.builder().id(14L).userId(5L).apiProductId(1L)
+                .apiKeyValue("apiverse_sandbox_xyz").isActive(true).monthlyQuota(500).build();
+
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(14L)).willReturn(Mono.just(key));
+        given(apiKeyRepository.save(key)).willReturn(Mono.just(key));
+        given(apiProductRepository.findById(1L)).willReturn(Mono.just(PRODUCT));
+        given(userRepository.findById(5L)).willReturn(Mono.just(KEY_OWNER));
+
+        asUser(1L).patch().uri("/api/admin/keys/14/quota")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("monthlyQuota", -1))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.monthlyQuota").isEqualTo(-1);
+    }
+
+    @Test
+    void updateQuota_negative_other_than_minus_one_returns_400() {
+        asUser(1L).patch().uri("/api/admin/keys/13/quota")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("monthlyQuota", -5))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void updateQuota_not_found_returns_404() {
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(99L)).willReturn(Mono.empty());
+
+        asUser(1L).patch().uri("/api/admin/keys/99/quota")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("monthlyQuota", 1000))
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void updateQuota_non_admin_returns_403() {
+        given(userRepository.findById(2L)).willReturn(Mono.just(REGULAR));
+
+        asUser(2L).patch().uri("/api/admin/keys/10/quota")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("monthlyQuota", 1000))
+                .exchange()
+                .expectStatus().isForbidden();
+    }
 }

@@ -12,6 +12,9 @@ import UsersPage from './pages/UsersPage.jsx'
 import UserDetailPage from './pages/UserDetailPage.jsx'
 import ApiKeysPage from './pages/ApiKeysPage.jsx'
 import ApiKeyDetailPage from './pages/ApiKeyDetailPage.jsx'
+import BillingLogsPage from './pages/BillingLogsPage.jsx'
+import BlockedIpsPage from './pages/BlockedIpsPage.jsx'
+import StatsPage from './pages/StatsPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
 function RedirectIfAuth({ children }) {
@@ -36,6 +39,9 @@ export default function App() {
               <Route path="/users/:id" element={<ProtectedRoute><UserDetailPage /></ProtectedRoute>} />
               <Route path="/keys" element={<ProtectedRoute><ApiKeysPage /></ProtectedRoute>} />
               <Route path="/keys/:id" element={<ProtectedRoute><ApiKeyDetailPage /></ProtectedRoute>} />
+              <Route path="/logs" element={<ProtectedRoute><BillingLogsPage /></ProtectedRoute>} />
+              <Route path="/blocked-ips" element={<ProtectedRoute><BlockedIpsPage /></ProtectedRoute>} />
+              <Route path="/stats" element={<ProtectedRoute><StatsPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>

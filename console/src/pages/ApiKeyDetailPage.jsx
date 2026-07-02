@@ -14,11 +14,19 @@ export default function ApiKeyDetailPage() {
   const [savingIp, setSavingIp] = useState(false)
   const [ipSaved, setIpSaved] = useState(false)
 
+  const [unlimited, setUnlimited] = useState(true)
+  const [quotaInput, setQuotaInput] = useState(0)
+  const [savingQuota, setSavingQuota] = useState(false)
+  const [quotaSaved, setQuotaSaved] = useState(false)
+  const [quotaError, setQuotaError] = useState('')
+
   useEffect(() => {
     client.get(`/admin/keys/${id}`)
       .then((res) => {
         setKey(res.data)
         setWhiteListIpInput(res.data.whiteListIp ?? '')
+        setUnlimited(res.data.monthlyQuota === -1)
+        setQuotaInput(res.data.monthlyQuota === -1 ? 0 : res.data.monthlyQuota)
       })
       .catch(() => setError('키 정보를 불러오지 못했습니다.'))
       .finally(() => setLoading(false))
@@ -34,6 +42,24 @@ export default function ApiKeyDetailPage() {
       setTimeout(() => setIpSaved(false), 2000)
     } finally {
       setSavingIp(false)
+    }
+  }
+
+  const saveQuota = async () => {
+    setSavingQuota(true)
+    setQuotaSaved(false)
+    setQuotaError('')
+    try {
+      const { data } = await client.patch(`/admin/keys/${id}/quota`, {
+        monthlyQuota: unlimited ? -1 : Number(quotaInput),
+      })
+      setKey(data)
+      setQuotaSaved(true)
+      setTimeout(() => setQuotaSaved(false), 2000)
+    } catch {
+      setQuotaError('쿼터 저장에 실패했습니다.')
+    } finally {
+      setSavingQuota(false)
     }
   }
 
@@ -119,6 +145,49 @@ export default function ApiKeyDetailPage() {
               </div>
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
                 등록된 IP 외에서 이 키로 요청하면 게이트웨이가 403으로 거부합니다. 여러 IP는 콤마로 구분하세요.
+              </p>
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-5">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                월간 쿼터
+              </label>
+              <div className="flex items-center gap-3 mb-2">
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={unlimited}
+                    onChange={(e) => setUnlimited(e.target.checked)}
+                    className="rounded border-gray-300 dark:border-gray-700"
+                  />
+                  무제한
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  value={quotaInput}
+                  onChange={(e) => setQuotaInput(e.target.value)}
+                  disabled={unlimited}
+                  placeholder="월간 허용 호출 수"
+                  className="flex-1 px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 disabled:opacity-50"
+                />
+                <button
+                  onClick={saveQuota}
+                  disabled={savingQuota}
+                  className={`px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 shrink-0 ${
+                    quotaSaved
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white'
+                  }`}
+                >
+                  {savingQuota ? '저장 중...' : quotaSaved ? '저장됨 ✓' : '저장'}
+                </button>
+              </div>
+              {quotaError && <p className="text-xs text-red-500 dark:text-red-400 mt-1.5">{quotaError}</p>}
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+                초과 시 게이트웨이가 429(Too Many Requests)로 거부합니다. 매월 1일 자정에 사용량이 초기화됩니다.
               </p>
             </div>
 

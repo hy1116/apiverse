@@ -89,6 +89,26 @@ public class ApiKeyAdminController {
                 .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
+    // monthlyQuota: -1(무제한) 또는 0 이상. 그 외 값은 400.
+    @PatchMapping("/{id}/quota")
+    public Mono<ResponseEntity<Map<String, Object>>> updateQuota(@PathVariable Long id,
+                                                                  @RequestBody UpdateQuotaRequest req,
+                                                                  @AuthenticationPrincipal Mono<Long> principal) {
+        Integer quota = req.monthlyQuota();
+        if (quota == null || (quota < 0 && quota != -1)) {
+            return Mono.just(ResponseEntity.badRequest().build());
+        }
+        return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
+                .flatMap(uid -> apiKeyRepository.findById(id))
+                .flatMap(key -> {
+                    key.setMonthlyQuota(quota);
+                    return apiKeyRepository.save(key);
+                })
+                .flatMap(this::withLookups)
+                .map(ResponseEntity::ok)
+                .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
     private Map<String, Object> toKeyMap(ApiKey key, String productName, String userEmail) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id",             key.getId());

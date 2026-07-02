@@ -1,6 +1,7 @@
 package com.hypepia.apiverse.admin.usage;
 
 import com.hypepia.apiverse.admin.config.TestSecurityConfig;
+import com.hypepia.apiverse.core.entity.BillingLog;
 import com.hypepia.apiverse.core.entity.User;
 import com.hypepia.apiverse.core.projection.DailyStat;
 import com.hypepia.apiverse.core.repository.BillingLogRepository;
@@ -61,6 +62,49 @@ class UsageAdminControllerTest {
         given(userRepository.findById(2L)).willReturn(Mono.just(REGULAR));
 
         asUser(2L).get().uri("/api/admin/usage/daily")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void logs_admin_returns_paginated_items() {
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(billingLogRepository.findLogsPage(false, 7, 50, 0L)).willReturn(Flux.just(
+                BillingLog.builder().id(1L).apiKeyValue("key1").requestPath("/current").httpMethod("GET")
+                        .responseStatus(200).clientIp("127.0.0.1").build()
+        ));
+        given(billingLogRepository.countLogs(false, 7)).willReturn(Mono.just(1L));
+
+        asUser(1L).get().uri("/api/admin/usage/logs")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.total").isEqualTo(1)
+                .jsonPath("$.items.length()").isEqualTo(1)
+                .jsonPath("$.items[0].responseStatus").isEqualTo(200);
+    }
+
+    @Test
+    void logs_onlyErrors_filters_to_5xx() {
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(billingLogRepository.findLogsPage(true, 7, 50, 0L)).willReturn(Flux.just(
+                BillingLog.builder().id(2L).apiKeyValue("key1").requestPath("/current").httpMethod("GET")
+                        .responseStatus(500).clientIp("127.0.0.1").build()
+        ));
+        given(billingLogRepository.countLogs(true, 7)).willReturn(Mono.just(1L));
+
+        asUser(1L).get().uri("/api/admin/usage/logs?onlyErrors=true")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.items[0].responseStatus").isEqualTo(500);
+    }
+
+    @Test
+    void logs_non_admin_returns_403() {
+        given(userRepository.findById(2L)).willReturn(Mono.just(REGULAR));
+
+        asUser(2L).get().uri("/api/admin/usage/logs")
                 .exchange()
                 .expectStatus().isForbidden();
     }
