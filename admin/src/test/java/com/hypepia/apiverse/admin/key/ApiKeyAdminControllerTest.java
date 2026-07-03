@@ -122,13 +122,38 @@ class ApiKeyAdminControllerTest {
 
     @Test
     void revoke_admin_succeeds_regardless_of_owner() {
+        ApiKey key = ApiKey.builder()
+                .id(10L).userId(5L).apiProductId(1L)
+                .apiKeyValue("apiverse_sandbox_abc123")
+                .isActive(true).build();
+
         given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
-        given(apiKeyRepository.findById(10L)).willReturn(Mono.just(KEY));
-        given(apiKeyRepository.deleteById(10L)).willReturn(Mono.empty());
+        given(apiKeyRepository.findById(10L)).willReturn(Mono.just(key));
+        given(apiKeyRepository.save(key)).willReturn(Mono.just(key));
 
         asUser(1L).delete().uri("/api/admin/keys/10")
                 .exchange()
                 .expectStatus().isNoContent();
+    }
+
+    @Test
+    void revoke_admin_deactivates_instead_of_deleting() {
+        ApiKey key = ApiKey.builder()
+                .id(15L).userId(5L).apiProductId(1L)
+                .apiKeyValue("apiverse_sandbox_abc123")
+                .isActive(true).build();
+
+        given(userRepository.findById(1L)).willReturn(Mono.just(ADMIN));
+        given(apiKeyRepository.findById(15L)).willReturn(Mono.just(key));
+        given(apiKeyRepository.save(key)).willReturn(Mono.just(key));
+
+        asUser(1L).delete().uri("/api/admin/keys/15")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        org.junit.jupiter.api.Assertions.assertFalse(key.getIsActive());
+        org.mockito.Mockito.verify(apiKeyRepository, org.mockito.Mockito.never())
+                .deleteById(org.mockito.ArgumentMatchers.any(Long.class));
     }
 
     @Test

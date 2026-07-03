@@ -4,11 +4,11 @@ import com.hypepia.apiverse.core.entity.ApiProduct;
 import com.hypepia.apiverse.core.repository.ApiKeyRepository;
 import com.hypepia.apiverse.core.repository.ApiProductRepository;
 import com.hypepia.apiverse.core.repository.UserRepository;
+import com.hypepia.apiverse.gateway.config.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
@@ -17,7 +17,6 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -44,8 +43,7 @@ public class ApiProductController {
     // 로그인 상태이면 해당 유저의 키를 반환, 비로그인이면 {}
     @GetMapping("/{id}/my-key")
     public Mono<Map<String, String>> getMyKey(@PathVariable Long id) {
-        return ReactiveSecurityContextHolder.getContext()
-                .map(ctx -> (Long) Objects.requireNonNull(Objects.requireNonNull(ctx.getAuthentication()).getPrincipal()))
+        return SecurityUtils.currentUserIdOrEmpty()
                 .flatMap(userId -> apiKeyRepository.findByUserIdAndApiProductId(userId, id))
                 .map(key -> Map.of("apiKeyValue", key.getApiKeyValue()))
                 .defaultIfEmpty(Map.of());

@@ -6,9 +6,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @SpringBootApplication(scanBasePackages = "com.hypepia.apiverse")
-public class ApiverseGatewayApplication {
+public class GatewayApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ApiverseGatewayApplication.class, args);
+        SpringApplication.run(GatewayApplication.class, args);
     }
 }

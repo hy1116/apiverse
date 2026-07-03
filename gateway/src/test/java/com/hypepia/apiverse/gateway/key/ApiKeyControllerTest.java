@@ -101,6 +101,31 @@ class ApiKeyControllerTest {
     }
 
     @Test
+    void issueKey_after_revoke_reactivates_existing_row_and_preserves_used_quota() {
+        ApiKey revokedKeyWithUsage = ApiKey.builder()
+                .id(10L).userId(USER_ID).apiProductId(1L)
+                .apiKeyValue("apiverse_sandbox_old")
+                .monthlyQuota(1000).usedQuota(750).isActive(false).build();
+
+        given(apiKeyRepository.findByUserIdAndApiProductId(USER_ID, 1L))
+                .willReturn(Mono.just(revokedKeyWithUsage));
+        given(apiKeyRepository.save(any())).willAnswer(inv -> Mono.just(inv.getArgument(0)));
+        given(apiProductRepository.findById(1L)).willReturn(Mono.just(product));
+
+        webTestClient.mutateWith(mockAuthentication(AUTH))
+                .post().uri("/api/keys")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of("apiProductId", 1))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(10)
+                .jsonPath("$.usedQuota").isEqualTo(750)
+                .jsonPath("$.isActive").isEqualTo(true)
+                .jsonPath("$.apiKeyValue").value(v -> org.junit.jupiter.api.Assertions.assertNotEquals("apiverse_sandbox_old", v));
+    }
+
+    @Test
     void issueKey_already_exists_returns_409() {
         given(apiKeyRepository.findByUserIdAndApiProductId(USER_ID, 1L))
                 .willReturn(Mono.just(activeKey));
@@ -118,12 +143,28 @@ class ApiKeyControllerTest {
     @Test
     void revokeKey_success_returns_204() {
         given(apiKeyRepository.findById(10L)).willReturn(Mono.just(activeKey));
-        given(apiKeyRepository.deleteById(10L)).willReturn(Mono.empty());
+        given(apiKeyRepository.save(any())).willReturn(Mono.just(activeKey));
 
         webTestClient.mutateWith(mockAuthentication(AUTH))
                 .delete().uri("/api/keys/10")
                 .exchange()
                 .expectStatus().isOk();
+    }
+
+    @Test
+    void revokeKey_deactivates_instead_of_deleting() {
+        given(apiKeyRepository.findById(10L)).willReturn(Mono.just(activeKey));
+        given(apiKeyRepository.save(any())).willReturn(Mono.just(activeKey));
+
+        webTestClient.mutateWith(mockAuthentication(AUTH))
+                .delete().uri("/api/keys/10")
+                .exchange()
+                .expectStatus().isOk();
+
+        org.mockito.ArgumentCaptor<ApiKey> captor = org.mockito.ArgumentCaptor.forClass(ApiKey.class);
+        org.mockito.Mockito.verify(apiKeyRepository).save(captor.capture());
+        org.junit.jupiter.api.Assertions.assertFalse(captor.getValue().getIsActive());
+        org.mockito.Mockito.verify(apiKeyRepository, org.mockito.Mockito.never()).deleteById(any(Long.class));
     }
 
     @Test

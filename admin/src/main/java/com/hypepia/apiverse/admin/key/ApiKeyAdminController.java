@@ -68,8 +68,13 @@ public class ApiKeyAdminController {
                                              @AuthenticationPrincipal Mono<Long> principal) {
         return principal.flatMap(uid -> requireAdmin(uid).thenReturn(uid))
                 .flatMap(uid -> apiKeyRepository.findById(id))
-                .flatMap(key -> apiKeyRepository.deleteById(id)
-                        .thenReturn(ResponseEntity.status(HttpStatus.NO_CONTENT).<Void>build()))
+                .flatMap(key -> {
+                    // 하드 삭제 대신 비활성화만 한다: usedQuota를 보존해야
+                    // 사용자가 재발급으로 쿼터를 리셋하는 것을 막을 수 있다
+                    key.setIsActive(false);
+                    return apiKeyRepository.save(key)
+                            .thenReturn(ResponseEntity.status(HttpStatus.NO_CONTENT).<Void>build());
+                })
                 .defaultIfEmpty(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
