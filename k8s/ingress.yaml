@@ -1,0 +1,54 @@
+# 로컬 kind/minikube에서 ingress-nginx addon 설치 후 사용.
+# /etc/hosts에 apiverse.local / admin.apiverse.local을 클러스터 진입 IP로 등록해야 함 (k8s/README.md 참고).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apiverse-ingress
+  namespace: apiverse
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: apiverse.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
+          # 외부 API 소비자가 X-API-KEY로 호출하는 프록시 경로 (/gateway/{code}/**) — ProxyController 참고
+          - path: /gateway
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80
+    - host: admin.apiverse.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: admin
+                port:
+                  number: 8090
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: console
+                port:
+                  number: 80

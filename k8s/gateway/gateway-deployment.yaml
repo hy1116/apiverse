@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: apiverse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      # gateway는 부팅 시 schema.sql을 실행하므로(spring.sql.init.mode=always) postgres가 응답할 때까지 기다린다.
+      initContainers:
+        - name: wait-for-deps
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432 && nc -z redis 6379; do
+                echo "waiting for postgres/redis..."; sleep 2;
+              done
+      containers:
+        - name: gateway
+          image: apiverse/gateway:local
+          imagePullPolicy: Never  # 로컬 kind/minikube에 미리 로드해둔 이미지만 사용
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_URL
+              value: r2dbc:postgresql://postgres:5432/apiverse
+            - name: DB_USERNAME
+              value: postgres
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: apiverse-secrets
+                  key: postgres-password
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: apiverse-secrets
+                  key: jwt-secret
+            # 앞단 nginx-ingress가 유일하게 신뢰하는 1홉 리버스 프록시이므로 활성화
+            - name: TRUST_FORWARDED_HEADERS
+              value: "true"
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 1
+              memory: 768Mi

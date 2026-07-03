@@ -1,0 +1,42 @@
+# /api 요청은 Ingress가 경로 기준으로 gateway 서비스로 직접 라우팅하므로, 이 파드는 정적 SPA만 서빙하면 된다.
+# (web/nginx.conf의 /api proxy_pass 블록은 Ingress가 먼저 가로채기 때문에 k8s에서는 실행되지 않는다)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: apiverse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: apiverse/web:local
+          imagePullPolicy: Never  # 로컬 kind/minikube에 미리 로드해둔 이미지만 사용
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

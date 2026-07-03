@@ -1,0 +1,41 @@
+# /api 요청은 Ingress가 경로 기준으로 admin 서비스로 직접 라우팅하므로, 이 파드는 정적 SPA만 서빙하면 된다.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: console
+  namespace: apiverse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: console
+  template:
+    metadata:
+      labels:
+        app: console
+    spec:
+      containers:
+        - name: console
+          image: apiverse/console:local
+          imagePullPolicy: Never  # 로컬 kind/minikube에 미리 로드해둔 이미지만 사용
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

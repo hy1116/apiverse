@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: apiverse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres 5432; do
+                echo "waiting for postgres..."; sleep 2;
+              done
+      containers:
+        - name: admin
+          image: apiverse/admin:local
+          imagePullPolicy: Never  # 로컬 kind/minikube에 미리 로드해둔 이미지만 사용
+          ports:
+            - containerPort: 8090
+          env:
+            - name: DB_URL
+              value: r2dbc:postgresql://postgres:5432/apiverse
+            - name: DB_USERNAME
+              value: postgres
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: apiverse-secrets
+                  key: postgres-password
+            # gateway가 발급한 JWT를 그대로 검증해야 하므로 반드시 gateway와 동일한 값
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: apiverse-secrets
+                  key: jwt-secret
+          readinessProbe:
+            tcpSocket:
+              port: 8090
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 1
+              memory: 768Mi
