@@ -9,6 +9,7 @@ import com.hypepia.apiverse.core.repository.BillingLogRepository;
 import com.hypepia.apiverse.core.repository.BlockedIpRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -44,11 +45,17 @@ public class ProxyService {
     private final RateLimiter rateLimiter;
     private final WebClient.Builder webClientBuilder;
 
+    // 앞단에 신뢰 가능한 리버스 프록시(nginx-ingress 등)가 정확히 1홉 있는 환경(k8s)에서만 true로 켠다.
+    // 로컬 개발 등 프록시 없이 직접 연결되는 환경에서 true로 두면 클라이언트가 이 헤더를 조작해
+    // IP 화이트리스트/차단목록을 우회할 수 있으므로 기본값은 false.
+    @Value("${app.trust-forwarded-headers:false}")
+    private boolean trustForwardedHeaders;
+
     public Mono<ResponseEntity<String>> proxy(ServerWebExchange exchange, String code) {
-        String clientIp = resolveClientIp(exchange);
+        String clientIp = resolveClientIp(exchange.getRequest());
 
         return blockedIpRepository.findByIpAddress(clientIp)
-                .<ResponseEntity<String>>flatMap(blocked -> Mono.just(
+                .flatMap(blocked -> Mono.just(
                         ResponseEntity.status(HttpStatus.FORBIDDEN).body("IP blocked")))
                 .switchIfEmpty(Mono.defer(() -> doProxy(exchange, code, clientIp)));
     }
@@ -72,7 +79,7 @@ public class ProxyService {
                                         return Mono.just(
                                                 ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Rate limit exceeded"));
                                     }
-                                    return forward(exchange, product, apiKey)
+                                    return forward(exchange, product)
                                             .doOnNext(response -> {
                                                 writeBillingLog(exchange, apiKeyValue, response);
                                                 apiKeyRepository.incrementUsedQuota(apiKey.getId())
@@ -86,12 +93,21 @@ public class ProxyService {
                         Mono.just(ResponseEntity.status(ex.getStatusCode()).body(ex.getReason())));
     }
 
-    private String resolveClientIp(ServerWebExchange exchange) {
-        String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
+    private String resolveClientIp(ServerHttpRequest req) {
+        return resolveClientIp(req, trustForwardedHeaders);
+    }
+
+    static String resolveClientIp(ServerHttpRequest req, boolean trustForwardedHeaders) {
+        if (trustForwardedHeaders) {
+            String forwarded = req.getHeaders().getFirst("X-Forwarded-For");
+            if (forwarded != null && !forwarded.isBlank()) {
+                // 콤마로 구분된 값 중 마지막 항목이 신뢰 가능한 프록시(nginx-ingress)가 실제로 관찰한
+                // 직전 홉의 IP다. 첫 번째 항목은 클라이언트가 직접 써넣을 수 있어 신뢰할 수 없다.
+                String[] parts = forwarded.split(",");
+                return parts[parts.length - 1].trim();
+            }
         }
-        InetSocketAddress remote = exchange.getRequest().getRemoteAddress();
+        InetSocketAddress remote = req.getRemoteAddress();
         return remote != null ? toIPv4IfPossible(remote.getAddress()) : "unknown";
     }
 
@@ -146,19 +162,20 @@ public class ProxyService {
         return false;
     }
 
-    private Mono<ResponseEntity<String>> forward(ServerWebExchange exchange, ApiProduct product, ApiKey apiKey) {
+    private Mono<ResponseEntity<String>> forward(ServerWebExchange exchange, ApiProduct product) {
         ServerHttpRequest req = exchange.getRequest();
         String subPath   = req.getPath().value().replaceFirst("^/gateway/[^/]+", "");
         String rawQuery  = req.getURI().getRawQuery();
         String baseTargetUri = product.getBaseUrl() + subPath + (rawQuery != null ? "?" + rawQuery : "");
 
+        // 인바운드 X-API-KEY(우리 게이트웨이 인증용 고객 비밀키)는 업스트림이 알 필요가 없으므로 제거만 하고
+        // 재주입하지 않는다 — 업스트림 인증은 applyUpstreamKey()의 upstream_api_key로만 처리한다.
         HttpHeaders headers = new HttpHeaders();
         req.getHeaders().forEach((name, values) -> {
             if (!name.equalsIgnoreCase("Host") && !name.equalsIgnoreCase("X-API-KEY")) {
                 headers.addAll(name, values);
             }
         });
-        headers.set("X-API-KEY", apiKey.getApiKeyValue());
 
         String targetUri = applyUpstreamKey(baseTargetUri, headers, product);
 
@@ -210,7 +227,7 @@ public class ProxyService {
 
     private void writeBillingLog(ServerWebExchange exchange, String apiKeyValue,
                                   ResponseEntity<String> response) {
-        String clientIp = resolveClientIp(exchange);
+        String clientIp = resolveClientIp(exchange.getRequest());
 
         BillingLog entry = BillingLog.builder()
                 .apiKeyValue(apiKeyValue)
