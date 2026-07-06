@@ -1,5 +1,5 @@
 # 로컬 kind/minikube에서 ingress-nginx addon 설치 후 사용.
-# /etc/hosts에 apiverse.local / admin.apiverse.local을 클러스터 진입 IP로 등록해야 함 (k8s/README.md 참고).
+# /etc/hosts에 apiverse.hypepia.com / admverse.hypepia.com을 클러스터 진입 IP로 등록해야 함 (k8s/README.md 참고).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,7 +10,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: apiverse.local
+    - host: apiverse.hypepia.com
       http:
         paths:
           - path: /api
@@ -35,7 +35,7 @@ spec:
                 name: web
                 port:
                   number: 80
-    - host: admin.apiverse.local
+    - host: admverse.hypepia.com
       http:
         paths:
           - path: /api

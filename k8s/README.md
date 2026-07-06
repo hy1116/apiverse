@@ -82,7 +82,7 @@ kubectl get pods -n apiverse -w
 `/etc/hosts`(Windows: `C:\Windows\System32\drivers\etc\hosts`, 관리자 권한 필요)에 추가:
 
 ```
-127.0.0.1  apiverse.local admin.apiverse.local
+127.0.0.1  apiverse.hypepia.com admverse.hypepia.com
 ```
 
 ## 6. 확인
@@ -90,11 +90,11 @@ kubectl get pods -n apiverse -w
 포트가 8080으로 매핑되어 있으니 URL에 포트를 붙여야 합니다:
 
 ```bash
-curl http://apiverse.local:8080/api/products
-curl http://admin.apiverse.local:8080/api/admin/products   # 401 나오면 정상 (인증 필요)
+curl http://apiverse.hypepia.com:8080/api/products
+curl http://admverse.hypepia.com:8080/api/admin/products   # 401 나오면 정상 (인증 필요)
 ```
 
-브라우저로 `http://apiverse.local:8080`(사용자 화면), `http://admin.apiverse.local:8080`(어드민 화면) 접속.
+브라우저로 `http://apiverse.hypepia.com:8080`(사용자 화면), `http://admverse.hypepia.com:8080`(어드민 화면) 접속.
 실제로 위 4개 경로(web root, console root, `/api/products`, `/gateway/{code}/**`) 전부 라이브 클러스터에 붙여서
 정상 응답 확인함.
 
@@ -122,7 +122,7 @@ OrbStack의 Kubernetes는 OrbStack 도커 엔진과 이미지 저장소를 공�
 자동으로 localhost에 매핑해줌). 포트도 8080이 아니라 80을 그대로 씁니다:
 
 ```bash
-curl http://apiverse.local/api/products
+curl http://apiverse.hypepia.com/api/products
 ```
 
 다만 이 조합은 실측 검증은 안 했으니, 이미지가 안 보이거나(`ErrImageNeverPull`) ingress 파드가 안 뜨면
@@ -133,7 +133,7 @@ curl http://apiverse.local/api/products
 - `/api/**`, `/gateway/**` → Ingress가 경로 기준으로 `gateway` Service(8080)에 직접 라우팅. web 파드의 nginx.conf에 있는
   `/api` proxy_pass 블록(`host.docker.internal` 대상)은 로컬 `docker run` 단독 실행용이고, k8s에서는 Ingress가 먼저
   가로채서 실행되지 않는다.
-- admin.apiverse.local의 `/api/**`도 마찬가지로 `admin` Service(8090)로 직접 라우팅.
+- admverse.hypepia.com의 `/api/**`도 마찬가지로 `admin` Service(8090)로 직접 라우팅.
 - postgres는 PVC(`postgres-pvc`, 1Gi)로 데이터 보존, redis는 레이트리미터 캐시 용도라 휘발성(PVC 없음).
 - `TRUST_FORWARDED_HEADERS=true`가 gateway에 설정되어 있음 — nginx-ingress가 유일한 신뢰 프록시 홉이라는 전제.
   만약 이중 프록시(예: 클라우드 LB + nginx-ingress)를 추가로 두게 되면 `ProxyService.resolveClientIp`의

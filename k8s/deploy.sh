@@ -111,7 +111,7 @@ print_hosts_hint() {
     log "hosts 파일 설정 필요 (관리자 권한)"
     echo "  Windows: C:\\Windows\\System32\\drivers\\etc\\hosts"
     echo "  macOS/Linux: /etc/hosts"
-    echo "  127.0.0.1  apiverse.local admin.apiverse.local"
+    echo "  127.0.0.1  apiverse.hypepia.com admverse.hypepia.com"
 
     if [[ "$IMAGE_LOAD" == "minikube" ]]; then
         echo
@@ -123,8 +123,8 @@ print_verify_hint() {
     log "확인"
     local suffix=""
     [[ "$INGRESS_PORT" != "80" ]] && suffix=":$INGRESS_PORT"
-    echo "  curl http://apiverse.local${suffix}/api/products"
-    echo "  curl http://admin.apiverse.local${suffix}/api/admin/products   # 401/403이면 정상(인증 필요)"
+    echo "  curl http://apiverse.hypepia.com${suffix}/api/products"
+    echo "  curl http://admverse.hypepia.com${suffix}/api/admin/products   # 401/403이면 정상(인증 필요)"
 }
 
 start_postgres_port_forward() {
