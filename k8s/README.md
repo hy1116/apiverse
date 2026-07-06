@@ -128,6 +128,49 @@ curl http://apiverse.hypepia.com/api/products
 다만 이 조합은 실측 검증은 안 했으니, 이미지가 안 보이거나(`ErrImageNeverPull`) ingress 파드가 안 뜨면
 `kubectl get pods -n ingress-nginx`로 상태부터 확인하세요.
 
+## 공인 IP 없는 홈서버에서 Cloudflare Tunnel로 외부 노출
+
+이 머신처럼 공인 IP가 없거나 포트포워딩을 열 수 없는 환경에서 `apiverse.hypepia.com` /
+`admverse.hypepia.com`을 외부에 노출하려면 Cloudflare Tunnel(`cloudflared`)을 씁니다. DNS A 레코드 대신
+터널이 아웃바운드로 Cloudflare에 연결되므로 방화벽/포트포워딩 설정이 전혀 필요 없습니다.
+
+```bash
+# 1. Cloudflare 계정 로그인 (브라우저 열림, hypepia.com 존 선택)
+cloudflared tunnel login
+
+# 2. 터널 생성 (Tunnel ID와 ~/.cloudflared/<ID>.json 자격증명 파일 생성됨)
+cloudflared tunnel create apiverse
+
+# 3. k8s/cloudflared/config.yml.example을 ~/.cloudflared/config-apiverse.yml로 복사 후
+#    <TUNNEL_ID>를 2번에서 나온 값으로 채우기 (이 파일은 자격증명이 아니라 라우팅 설정만 있음).
+#    이미 다른 프로젝트(stocksense 등)로 cloudflared를 쓰고 있다면 기본 ~/.cloudflared/config.yml을
+#    덮어쓰지 말고 반드시 이름을 분리해서 별도 named config로 관리할 것.
+
+# 4. 각 hostname을 터널에 매핑하는 DNS 레코드를 Cloudflare에 생성.
+#    이름(apiverse) 대신 UUID로 지정할 것 — 계정에 터널이 여러 개 있으면 이름 매칭이 엉뚱한 터널로
+#    라우팅되는 경우가 실제로 발생함 (route dns 로그의 tunnelID를 반드시 확인).
+cloudflared tunnel route dns --overwrite-dns <TUNNEL_ID> apiverse.hypepia.com
+cloudflared tunnel route dns --overwrite-dns <TUNNEL_ID> admverse.hypepia.com
+
+# 5. 실행 (테스트용, 포그라운드)
+cloudflared tunnel --config ~/.cloudflared/config-apiverse.yml run apiverse
+
+# 6. 로그인 세션과 무관하게 항상 떠 있도록 launchd 서비스로 등록 (macOS).
+#    ~/Library/LaunchAgents/com.cloudflare.cloudflared.apiverse.plist 참고 (stocksense 서비스와 동일한 구조).
+launchctl load ~/Library/LaunchAgents/com.cloudflare.cloudflared.apiverse.plist
+```
+
+이 프로젝트 환경에서는 실제로 `com.cloudflare.cloudflared.apiverse` 서비스가 상시 등록되어 있고,
+`k8s/kind-config.yaml`이 매핑한 로컬 8080으로 연결을 흘려보냅니다. kind 클러스터/ingress가 안 떠 있으면
+두 도메인 모두 502를 반환하는 게 정상이고, `./k8s/deploy.sh up`으로 배포하면 200이 뜹니다.
+
+`config.yml`의 `service: http://localhost:8080`은 `k8s/kind-config.yaml`에서 ingress-nginx를 호스트
+8080으로 매핑해둔 값과 맞춘 것 — kind 클러스터가 그 포트로 떠 있어야 터널이 정상 응답함. ingress-nginx가
+Host 헤더로 두 도메인을 구분해서 라우팅하므로 두 hostname 모두 같은 `localhost:8080`을 가리켜도 무방함.
+
+⚠️ `~/.cloudflared/config.yml`과 `<TUNNEL_ID>.json` 자격증명 파일은 절대 커밋하지 말 것 — 이 저장소는
+public이라 유출 시 누구나 터널을 통해 내부 서비스에 접근할 수 있게 됨 (`.gitignore`에 이미 반영됨).
+
 ## 구조 메모
 
 - `/api/**`, `/gateway/**` → Ingress가 경로 기준으로 `gateway` Service(8080)에 직접 라우팅. web 파드의 nginx.conf에 있는

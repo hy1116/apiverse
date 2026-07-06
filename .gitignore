@@ -50,6 +50,8 @@ dist/
 ### k8s ###
 k8s/.postgres-port-forward.pid
 k8s/.postgres-port-forward.log
+k8s/cloudflared/config.yml
+k8s/cloudflared/*.json
 
 ### logs ###
 logs/
