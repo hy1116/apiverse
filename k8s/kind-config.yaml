@@ -1,0 +1,20 @@
+# kind create cluster --name apiverse --config k8s/kind-config.yaml
+# ingress-nginx가 호스트의 8080/8443으로 붙도록 포트 매핑 + ingress-ready 라벨을 설정.
+# 80/443이 아닌 이유: 이 머신은 Docker Desktop 자체(com.docker.backend.exe)가 호스트 80을 이미 점유하고 있음.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 8443
+        protocol: TCP

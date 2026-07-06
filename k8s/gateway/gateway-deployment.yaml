@@ -13,6 +13,9 @@ spec:
       labels:
         app: gateway
     spec:
+      # k8s가 Service별로 자동 주입하는 <SERVICE>_PORT류 레거시 env가 우리 프로퍼티 이름과 겹칠 수 있어 비활성화
+      # (예: REDIS_PORT — 지금은 아래서 명시적으로 다시 선언해 덮어써서 우연히 안전하지만, 근본적으로 막는다)
+      enableServiceLinks: false
       # gateway는 부팅 시 schema.sql을 실행하므로(spring.sql.init.mode=always) postgres가 응답할 때까지 기다린다.
       initContainers:
         - name: wait-for-deps
@@ -52,6 +55,12 @@ spec:
             # 앞단 nginx-ingress가 유일하게 신뢰하는 1홉 리버스 프록시이므로 활성화
             - name: TRUST_FORWARDED_HEADERS
               value: "true"
+            - name: LOG_PATH
+              value: /var/log/apiverse
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log/apiverse
+              subPath: gateway
           readinessProbe:
             tcpSocket:
               port: 8080
@@ -69,3 +78,7 @@ spec:
             limits:
               cpu: 1
               memory: 768Mi
+      volumes:
+        - name: logs
+          persistentVolumeClaim:
+            claimName: apiverse-logs-pvc

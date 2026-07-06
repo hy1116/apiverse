@@ -13,6 +13,9 @@ spec:
       labels:
         app: admin
     spec:
+      # k8s가 Service별로 자동 주입하는 <SERVICE>_PORT류 레거시 env(예: ADMIN_PORT=tcp://...)가
+      # 우리 앱의 ADMIN_PORT 프로퍼티와 이름이 겹쳐 server.port 파싱이 깨지는 걸 막는다.
+      enableServiceLinks: false
       initContainers:
         - name: wait-for-postgres
           image: busybox:1.36
@@ -45,6 +48,12 @@ spec:
                 secretKeyRef:
                   name: apiverse-secrets
                   key: jwt-secret
+            - name: LOG_PATH
+              value: /var/log/apiverse
+          volumeMounts:
+            - name: logs
+              mountPath: /var/log/apiverse
+              subPath: admin
           readinessProbe:
             tcpSocket:
               port: 8090
@@ -62,3 +71,7 @@ spec:
             limits:
               cpu: 1
               memory: 768Mi
+      volumes:
+        - name: logs
+          persistentVolumeClaim:
+            claimName: apiverse-logs-pvc

@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - 00-namespace.yaml
   - 01-secret.yaml
+  - logs-pvc.yaml
   - postgres/postgres-pvc.yaml
   - postgres/postgres-deployment.yaml
   - postgres/postgres-service.yaml

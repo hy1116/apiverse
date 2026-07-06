@@ -46,3 +46,10 @@ dist/
 
 ### claude ###
 .claude/
+
+### k8s ###
+k8s/.postgres-port-forward.pid
+k8s/.postgres-port-forward.log
+
+### logs ###
+logs/

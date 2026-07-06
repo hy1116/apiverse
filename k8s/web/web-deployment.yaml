@@ -15,6 +15,7 @@ spec:
       labels:
         app: web
     spec:
+      enableServiceLinks: false
       containers:
         - name: web
           image: apiverse/web:local
