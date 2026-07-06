@@ -61,7 +61,7 @@ export default function MyProductsPage() {
                 {products.map((p) => (
                   <tr
                     key={p.id}
-                    onClick={() => p.isActive && navigate(`/marketplace/${p.id}`)}
+                    onClick={() => p.isActive && navigate(`/marketplace/${p.code}`)}
                     className={`border-b border-gray-100 dark:border-gray-800 last:border-0 transition-colors ${
                       p.isActive ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50' : ''
                     }`}

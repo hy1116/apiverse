@@ -29,9 +29,11 @@ public class SecurityConfig {
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/auth/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/products/pending", "/api/products/my").authenticated()
-                        .pathMatchers(HttpMethod.GET, "/api/products", "/api/products/*").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/products", "/api/products/*", "/api/products/by-code/*").permitAll()
                         .pathMatchers("/api/usage/**").authenticated()
                         .pathMatchers("/gateway/**").permitAll()  // API key auth handled in ProxyService
+                        // springdoc — Swagger UI / OpenAPI 문서
+                        .pathMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/webjars/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .build();

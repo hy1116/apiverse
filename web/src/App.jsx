@@ -35,7 +35,7 @@ export default function App() {
               <Route path="/marketplace" element={<ProtectedRoute><MarketplacePage /></ProtectedRoute>} />
               <Route path="/marketplace/register" element={<ProtectedRoute><RegisterApiPage /></ProtectedRoute>} />
               <Route path="/marketplace/my" element={<ProtectedRoute><MyProductsPage /></ProtectedRoute>} />
-              <Route path="/marketplace/:id" element={<ApiDetailPage />} />
+              <Route path="/marketplace/:code" element={<ApiDetailPage />} />
               <Route path="/inquiry" element={<ProtectedRoute><InquiryPage /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/logs" element={<ProtectedRoute><LogsPage /></ProtectedRoute>} />
