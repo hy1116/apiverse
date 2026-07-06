@@ -305,7 +305,7 @@ export default function DashboardPage() {
           onClose={() => setCallInfoProduct(null)}
           onViewFull={() => {
             setCallInfoProduct(null)
-            navigate(`/marketplace/${callInfoProduct.id}`)
+            navigate(`/marketplace/${callInfoProduct.code}`)
           }}
         />
       )}

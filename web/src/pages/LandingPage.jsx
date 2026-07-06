@@ -207,7 +207,7 @@ function ApiCard({ product }) {
           {product.callsPerSec}req/s
         </span>
         <Link
-          to={`/marketplace/${product.id}`}
+          to={`/marketplace/${product.code}`}
           className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
         >
           자세히 보기 →

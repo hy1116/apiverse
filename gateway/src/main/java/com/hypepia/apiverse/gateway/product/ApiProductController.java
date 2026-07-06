@@ -40,6 +40,13 @@ public class ApiProductController {
                 .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND)));
     }
 
+    // 마켓플레이스 상세 페이지는 URL에 숫자 id 대신 code 슬러그를 쓴다 (/marketplace/{code}).
+    @GetMapping("/by-code/{code}")
+    public Mono<ApiProduct> getProductByCode(@PathVariable String code) {
+        return apiProductRepository.findByCode(code)
+                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND)));
+    }
+
     // 로그인 상태이면 해당 유저의 키를 반환, 비로그인이면 {}
     @GetMapping("/{id}/my-key")
     public Mono<Map<String, String>> getMyKey(@PathVariable Long id) {

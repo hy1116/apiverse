@@ -61,7 +61,7 @@ function CopyButton({ text, className = '' }) {
 }
 
 export default function ApiDetailPage() {
-  const { id } = useParams()
+  const { code } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -72,17 +72,18 @@ export default function ApiDetailPage() {
   const [issuing, setIssuing] = useState(false)
 
   useEffect(() => {
-    client.get(`/products/${id}`)
+    client.get(`/products/by-code/${code}`)
       .then(({ data }) => setProduct(data))
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
-  }, [id])
+  }, [code])
 
   useEffect(() => {
-    client.get(`/products/${id}/my-key`)
+    if (!product) return
+    client.get(`/products/${product.id}/my-key`)
       .then(({ data }) => { if (data.apiKeyValue) setMyKey(data.apiKeyValue) })
       .catch(() => {})
-  }, [id])
+  }, [product])
 
   const displayKey = myKey
 
@@ -112,11 +113,11 @@ export default function ApiDetailPage() {
   const handleIssueKey = async () => {
     setIssuing(true)
     try {
-      const { data } = await client.post('/keys', { apiProductId: Number(id) })
+      const { data } = await client.post('/keys', { apiProductId: product.id })
       setMyKey(data.apiKeyValue)
     } catch {
       // CONFLICT — key already exists, fetch it
-      const { data } = await client.get(`/products/${id}/my-key`).catch(() => ({ data: {} }))
+      const { data } = await client.get(`/products/${product.id}/my-key`).catch(() => ({ data: {} }))
       if (data.apiKeyValue) setMyKey(data.apiKeyValue)
     } finally {
       setIssuing(false)

@@ -17,7 +17,7 @@ function ApiProductCard({ product }) {
 
   return (
     <button
-      onClick={() => navigate(`/marketplace/${product.id}`)}
+      onClick={() => navigate(`/marketplace/${product.code}`)}
       className="text-left bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md dark:hover:shadow-black/30 transition-all group"
     >
       <div className="flex items-start justify-between mb-3">
