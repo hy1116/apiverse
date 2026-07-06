@@ -118,15 +118,23 @@ minikube addons enable ingress
 
 OrbStack의 Kubernetes는 OrbStack 도커 엔진과 이미지 저장소를 공유하므로(공식 문서 기준) `docker build`만
 하면 별도 로드 단계 없이 바로 보입니다. `deploy.sh`가 `orbstack` 컨텍스트를 자동 인식해서 이미지 로드를
-생략하고, ingress-nginx도 cloud provider용 manifest로 설치합니다(OrbStack이 LoadBalancer Service를
-자동으로 localhost에 매핑해줌). 포트도 8080이 아니라 80을 그대로 씁니다:
+생략하고, ingress-nginx도 cloud provider용 manifest로 설치합니다.
+
+⚠️ **실측 결과, `deploy.sh` 주석의 "OrbStack이 LoadBalancer를 localhost:80에 자동 매핑" 가정은 이 환경에서
+맞지 않았음** — 실제로는 `ingress-nginx-controller` Service의 `TYPE`이 `LoadBalancer`가 아니라
+`NodePort`로 떠 있었고, `EXTERNAL-IP`도 `<none>`. `localhost:80`은 응답이 아예 없고(connection refused),
+OrbStack이 host → NodePort로 자동 포워딩해주는 임의의 NodePort(예: 이 환경에서는 `30234`)로만 접속됨.
+`curl http://apiverse.hypepia.com:8080/...`(kind 기준) 둘 다 안 통하고, 실제로 열려있는 포트를 아래로 직접 확인해야 함:
 
 ```bash
-curl http://apiverse.hypepia.com/api/products
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+# PORT(S) 컬럼의 80:<NODEPORT>/TCP 값을 확인
+curl -H "Host: apiverse.hypepia.com" http://localhost:<NODEPORT>/api/products
 ```
 
-다만 이 조합은 실측 검증은 안 했으니, 이미지가 안 보이거나(`ErrImageNeverPull`) ingress 파드가 안 뜨면
-`kubectl get pods -n ingress-nginx`로 상태부터 확인하세요.
+ingress-nginx를 재설치하면 이 NodePort 값이 바뀔 수 있으니, 재설치 후에는 위 명령으로 다시 확인해서
+Cloudflare Tunnel config(`~/.cloudflared/config-apiverse.yml`)의 `service: http://localhost:<NODEPORT>`도
+같이 갱신해야 함.
 
 ## 공인 IP 없는 홈서버에서 Cloudflare Tunnel로 외부 노출
 
@@ -161,12 +169,15 @@ launchctl load ~/Library/LaunchAgents/com.cloudflare.cloudflared.apiverse.plist
 ```
 
 이 프로젝트 환경에서는 실제로 `com.cloudflare.cloudflared.apiverse` 서비스가 상시 등록되어 있고,
-`k8s/kind-config.yaml`이 매핑한 로컬 8080으로 연결을 흘려보냅니다. kind 클러스터/ingress가 안 떠 있으면
-두 도메인 모두 502를 반환하는 게 정상이고, `./k8s/deploy.sh up`으로 배포하면 200이 뜹니다.
+클러스터는 kind가 아니라 **OrbStack**이라 `service:`는 위 OrbStack 섹션에서 확인한 실제 NodePort
+(이 환경 기준 `http://localhost:30234`)를 가리키도록 맞춰뒀습니다. kind를 쓰는 환경이라면 대신
+`k8s/kind-config.yaml`이 매핑한 `localhost:8080`을 써야 합니다. ingress/파드가 안 떠 있으면 두 도메인
+모두 502가 뜨는 게 정상이고, `./k8s/deploy.sh up`으로 배포하면 200이 뜹니다.
 
-`config.yml`의 `service: http://localhost:8080`은 `k8s/kind-config.yaml`에서 ingress-nginx를 호스트
-8080으로 매핑해둔 값과 맞춘 것 — kind 클러스터가 그 포트로 떠 있어야 터널이 정상 응답함. ingress-nginx가
-Host 헤더로 두 도메인을 구분해서 라우팅하므로 두 hostname 모두 같은 `localhost:8080`을 가리켜도 무방함.
+ingress-nginx가 Host 헤더로 두 도메인을 구분해서 라우팅하므로 두 hostname 모두 같은 로컬 포트를
+가리켜도 무방합니다. 단, OrbStack에서는 ingress-nginx 재설치 시 NodePort 값이 바뀔 수 있으니 그때마다
+`kubectl get svc -n ingress-nginx ingress-nginx-controller`로 재확인 후 `config-apiverse.yml`을
+갱신해야 합니다.
 
 ⚠️ `~/.cloudflared/config.yml`과 `<TUNNEL_ID>.json` 자격증명 파일은 절대 커밋하지 말 것 — 이 저장소는
 public이라 유출 시 누구나 터널을 통해 내부 서비스에 접근할 수 있게 됨 (`.gitignore`에 이미 반영됨).

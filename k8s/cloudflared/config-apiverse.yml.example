@@ -5,10 +5,13 @@ tunnel: <TUNNEL_ID>
 credentials-file: /Users/choihyun-young/.cloudflared/<TUNNEL_ID>.json
 
 ingress:
-  # kind-config.yaml에서 ingress-nginx를 호스트 8080(HTTP)으로 매핑해뒀으므로 로컬 8080을 그대로 가리킴.
+  # kind면 kind-config.yaml이 매핑한 localhost:8080.
+  # OrbStack이면 ingress-nginx-controller Service가 LoadBalancer가 아니라 NodePort로 뜨는 경우가 있으니
+  # `kubectl get svc -n ingress-nginx ingress-nginx-controller`로 실제 PORT(S)의 80:<NODEPORT>/TCP 값을
+  # 확인해서 localhost:<NODEPORT>로 채울 것 (k8s/README.md "macOS + OrbStack을 쓰는 경우" 참고).
   # ingress-nginx가 Host 헤더로 apiverse/admverse를 구분해서 라우팅하므로 둘 다 같은 origin이어도 됨.
   - hostname: apiverse.hypepia.com
-    service: http://localhost:8080
+    service: http://localhost:<INGRESS_PORT>
   - hostname: admverse.hypepia.com
-    service: http://localhost:8080
+    service: http://localhost:<INGRESS_PORT>
   - service: http_status:404
