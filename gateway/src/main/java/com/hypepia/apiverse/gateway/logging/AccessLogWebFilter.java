@@ -55,6 +55,7 @@ public class AccessLogWebFilter implements WebFilter {
                 .defaultIfEmpty(Optional.empty())
                 .flatMap(userId -> {
                     AccessLog entry = AccessLog.builder()
+                            .source("GATEWAY")
                             .userId(userId.orElse(null))
                             .requestPath(request.getPath().value())
                             .httpMethod(request.getMethod().name())

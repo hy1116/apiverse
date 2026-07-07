@@ -10,7 +10,7 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDateTime;
 
-// gateway 앱 전체(로그인/상품/키/문의 등 REST API)에 대한 접근 로그.
+// gateway/admin 앱의 REST API 전체에 대한 접근 로그 (source로 구분).
 // /gateway/** 프록시 호출은 api_key_value 기준으로 billing_logs에 별도 기록되므로 여기서는 제외한다.
 @Table("access_logs")
 @Data
@@ -21,6 +21,10 @@ public class AccessLog {
 
     @Id
     private Long id;
+
+    // 'GATEWAY' | 'ADMIN' — 앱이 늘어나면 값만 추가하면 되므로 boolean 컬럼 대신 문자열 구분 컬럼을 쓴다.
+    @Column("source")
+    private String source;
 
     @Column("user_id")
     private Long userId;

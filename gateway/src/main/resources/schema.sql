@@ -95,10 +95,11 @@ CREATE TABLE IF NOT EXISTS blocked_ips (
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- gateway 앱 REST API(auth/product/key/inquiry 등) 전체 접근 로그.
+-- gateway/admin 앱 REST API(auth/product/key/inquiry 등) 전체 접근 로그. source로 앱 구분.
 -- /gateway/** 프록시 호출은 billing_logs에 api_key_value 기준으로 별도 기록되므로 여기서는 제외한다.
 CREATE TABLE IF NOT EXISTS access_logs (
     id              BIGSERIAL PRIMARY KEY,
+    source          VARCHAR(20) NOT NULL DEFAULT 'GATEWAY', -- 'GATEWAY' | 'ADMIN'
     user_id         BIGINT REFERENCES users(id),
     request_path    VARCHAR(255) NOT NULL,
     http_method     VARCHAR(10) NOT NULL,
@@ -107,4 +108,8 @@ CREATE TABLE IF NOT EXISTS access_logs (
     request_time    TIMESTAMP NOT NULL
 );
 
+-- source 컬럼 추가 이전 설치본 대비
+ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'GATEWAY';
+
 CREATE INDEX IF NOT EXISTS idx_access_logs_request_time ON access_logs(request_time);
+CREATE INDEX IF NOT EXISTS idx_access_logs_source_request_time ON access_logs(source, request_time);
