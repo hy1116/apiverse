@@ -53,16 +53,17 @@ public class ProxyService {
 
     public Mono<ResponseEntity<String>> proxy(ServerWebExchange exchange, String code) {
         String clientIp = resolveClientIp(exchange.getRequest());
+        String apiKeyValue = exchange.getRequest().getHeaders().getFirst("X-API-KEY");
+        String apiKeyValueForLog = (apiKeyValue == null || apiKeyValue.isBlank()) ? "-" : apiKeyValue;
 
         return blockedIpRepository.findByIpAddress(clientIp)
                 .flatMap(blocked -> Mono.just(
                         ResponseEntity.status(HttpStatus.FORBIDDEN).body("IP blocked")))
-                .switchIfEmpty(Mono.defer(() -> doProxy(exchange, code, clientIp)));
+                .switchIfEmpty(Mono.defer(() -> doProxy(exchange, code, clientIp, apiKeyValue)))
+                .doOnNext(response -> writeBillingLog(exchange, apiKeyValueForLog, clientIp, response));
     }
 
-    private Mono<ResponseEntity<String>> doProxy(ServerWebExchange exchange, String code, String clientIp) {
-        String apiKeyValue = exchange.getRequest().getHeaders().getFirst("X-API-KEY");
-
+    private Mono<ResponseEntity<String>> doProxy(ServerWebExchange exchange, String code, String clientIp, String apiKeyValue) {
         if (apiKeyValue == null || apiKeyValue.isBlank()) {
             return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("X-API-KEY header is required"));
@@ -80,12 +81,10 @@ public class ProxyService {
                                                 ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Rate limit exceeded"));
                                     }
                                     return forward(exchange, product)
-                                            .doOnNext(response -> {
-                                                writeBillingLog(exchange, apiKeyValue, response);
-                                                apiKeyRepository.incrementUsedQuota(apiKey.getId())
-                                                        .doOnError(e -> log.error("Failed to increment used_quota for key {}: {}", apiKey.getId(), e.getMessage()))
-                                                        .subscribe();
-                                            });
+                                            .doOnNext(response ->
+                                                    apiKeyRepository.incrementUsedQuota(apiKey.getId())
+                                                            .doOnError(e -> log.error("Failed to increment used_quota for key {}: {}", apiKey.getId(), e.getMessage()))
+                                                            .subscribe());
                                 })
                         )
                 )
@@ -97,7 +96,7 @@ public class ProxyService {
         return resolveClientIp(req, trustForwardedHeaders);
     }
 
-    static String resolveClientIp(ServerHttpRequest req, boolean trustForwardedHeaders) {
+    public static String resolveClientIp(ServerHttpRequest req, boolean trustForwardedHeaders) {
         if (trustForwardedHeaders) {
             String forwarded = req.getHeaders().getFirst("X-Forwarded-For");
             if (forwarded != null && !forwarded.isBlank()) {
@@ -225,10 +224,8 @@ public class ProxyService {
         return targetUri;
     }
 
-    private void writeBillingLog(ServerWebExchange exchange, String apiKeyValue,
+    private void writeBillingLog(ServerWebExchange exchange, String apiKeyValue, String clientIp,
                                   ResponseEntity<String> response) {
-        String clientIp = resolveClientIp(exchange.getRequest());
-
         BillingLog entry = BillingLog.builder()
                 .apiKeyValue(apiKeyValue)
                 .requestPath(exchange.getRequest().getPath().value())

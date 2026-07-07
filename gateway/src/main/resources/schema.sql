@@ -94,3 +94,17 @@ CREATE TABLE IF NOT EXISTS blocked_ips (
     reason      VARCHAR(255),
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- gateway 앱 REST API(auth/product/key/inquiry 등) 전체 접근 로그.
+-- /gateway/** 프록시 호출은 billing_logs에 api_key_value 기준으로 별도 기록되므로 여기서는 제외한다.
+CREATE TABLE IF NOT EXISTS access_logs (
+    id              BIGSERIAL PRIMARY KEY,
+    user_id         BIGINT REFERENCES users(id),
+    request_path    VARCHAR(255) NOT NULL,
+    http_method     VARCHAR(10) NOT NULL,
+    response_status INT NOT NULL,
+    client_ip       VARCHAR(50),
+    request_time    TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_access_logs_request_time ON access_logs(request_time);
