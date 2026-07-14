@@ -3,12 +3,15 @@ package com.hypepia.apiverse.gateway.proxy;
 import com.hypepia.apiverse.core.entity.ApiKey;
 import com.hypepia.apiverse.core.entity.ApiProduct;
 import com.hypepia.apiverse.core.entity.BillingLog;
+import com.hypepia.apiverse.core.kafka.BillingLogEvent;
+import com.hypepia.apiverse.core.kafka.BillingLogTopics;
 import com.hypepia.apiverse.core.repository.ApiKeyRepository;
 import com.hypepia.apiverse.core.repository.ApiProductRepository;
 import com.hypepia.apiverse.core.repository.BillingLogRepository;
 import com.hypepia.apiverse.core.repository.BlockedIpRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +25,8 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import reactor.kafka.sender.KafkaSender;
+import reactor.kafka.sender.SenderRecord;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -44,6 +49,7 @@ public class ProxyService {
     private final BlockedIpRepository blockedIpRepository;
     private final RateLimiter rateLimiter;
     private final WebClient.Builder webClientBuilder;
+    private final KafkaSender<String, BillingLogEvent> kafkaSender;
 
     // 앞단에 신뢰 가능한 리버스 프록시(nginx-ingress 등)가 정확히 1홉 있는 환경(k8s)에서만 true로 켠다.
     // 로컬 개발 등 프록시 없이 직접 연결되는 환경에서 true로 두면 클라이언트가 이 헤더를 조작해
@@ -226,7 +232,7 @@ public class ProxyService {
 
     private void writeBillingLog(ServerWebExchange exchange, String apiKeyValue, String clientIp,
                                   ResponseEntity<String> response) {
-        BillingLog entry = BillingLog.builder()
+        BillingLogEvent event = BillingLogEvent.builder()
                 .apiKeyValue(apiKeyValue)
                 .requestPath(exchange.getRequest().getPath().value())
                 .httpMethod(exchange.getRequest().getMethod().name())
@@ -235,8 +241,33 @@ public class ProxyService {
                 .requestTime(LocalDateTime.now())
                 .build();
 
-        billingLogRepository.save(entry)
-                .doOnError(e -> log.error("Failed to write billing log: {}", e.getMessage()))
+        ProducerRecord<String, BillingLogEvent> record =
+                new ProducerRecord<>(BillingLogTopics.BILLING_LOG, apiKeyValue, event);
+
+        // Kafka 발행이 실패하면(브로커 다운 등) event-consumer로 넘어갈 수 없으므로
+        // 그 자리에서 기존 방식(R2DBC 직접 저장)으로 폴백해 로그 유실을 막는다.
+        kafkaSender.send(Mono.just(SenderRecord.create(record, null)))
+                .then()
+                .onErrorResume(e -> {
+                    log.warn("Kafka billing log publish failed for key {}, falling back to direct DB write: {}",
+                            apiKeyValue, e.getMessage());
+                    return saveBillingLogDirect(event);
+                })
                 .subscribe();
+    }
+
+    private Mono<Void> saveBillingLogDirect(BillingLogEvent event) {
+        BillingLog entry = BillingLog.builder()
+                .apiKeyValue(event.getApiKeyValue())
+                .requestPath(event.getRequestPath())
+                .httpMethod(event.getHttpMethod())
+                .responseStatus(event.getResponseStatus())
+                .clientIp(event.getClientIp())
+                .requestTime(event.getRequestTime())
+                .build();
+
+        return billingLogRepository.save(entry)
+                .doOnError(e -> log.error("Failed to write billing log (fallback path): {}", e.getMessage()))
+                .then();
     }
 }

@@ -9,8 +9,12 @@ resources:
   - postgres/postgres-service.yaml
   - redis/redis-deployment.yaml
   - redis/redis-service.yaml
+  - kafka/kafka-pvc.yaml
+  - kafka/kafka-deployment.yaml
+  - kafka/kafka-service.yaml
   - gateway/gateway-deployment.yaml
   - gateway/gateway-service.yaml
+  - event-consumer/event-consumer-deployment.yaml
   - admin/admin-deployment.yaml
   - admin/admin-service.yaml
   - web/web-deployment.yaml

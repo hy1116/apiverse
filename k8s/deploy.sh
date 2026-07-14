@@ -1,9 +1,13 @@
-#!/usr/bin/env bash                                                                                   # apiverse 로컬 k8s 배포/정리 스크립트. Git Bash / macOS / Linux 셸에서 실행.
+#!/usr/bin/env bash
+# apiverse 로컬 k8s 배포/정리 스크립트. Git Bash / macOS / Linux 셸에서 실행.
 # 사용법:
-#   ./k8s/deploy.sh up               배포 (이미지 빌드 → ingress-nginx 설치 → 매니페스트 적용 → hosts 안내)                                                                                                 #   ./k8s/deploy.sh down              deployment/service/ingress만 삭제 (namespace/postgres-pvc 보존 → 데이터 유지)                                                                                         #   ./k8s/deploy.sh down --wipe-data  postgres-pvc/namespace까지 완전 삭제 (데이터 삭제)
+#   ./k8s/deploy.sh up               배포 (이미지 빌드 → ingress-nginx 설치 → 매니페스트 적용 → hosts 안내)
+#   ./k8s/deploy.sh down              deployment/service/ingress만 삭제 (namespace/postgres-pvc 보존 → 데이터 유지)
+#   ./k8s/deploy.sh down --wipe-data  postgres-pvc/namespace까지 완전 삭제 (데이터 삭제)
 #   ./k8s/deploy.sh status           파드/서비스/ingress 상태 확인
 set -euo pipefail
-                                                                                                      REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NAMESPACE=apiverse
 ACTION="${1:-up}"
 PF_PID_FILE="$REPO_ROOT/k8s/.postgres-port-forward.pid"
@@ -14,11 +18,15 @@ log() { printf '\n\033[1;34m==> %s\033[0m\n' "$1"; }
 check_context() {
     local ctx
     ctx="$(kubectl config current-context 2>/dev/null || true)"
-    if [[ -z "$ctx" ]]; then                                                                                  echo "kubectl 컨텍스트를 확인할 수 없습니다. 클러스터가 떠 있는지 확인하세요." >&2
-        exit 1                                                                                            fi
+    if [[ -z "$ctx" ]]; then
+        echo "kubectl 컨텍스트를 확인할 수 없습니다. 클러스터가 떠 있는지 확인하세요." >&2
+        exit 1
+    fi
     log "현재 kubectl 컨텍스트: $ctx"
     case "$ctx" in
-        docker-desktop)                                                                                           # 실측 확인됨: Docker Desktop 내장 k8s는 docker build 이미지 저장소와 분리된 containerd를 쓰고,                                                                                                             # 모든 pull이 내부 registry-mirror를 강제 경유해서 로컬 레지스트리 우회도 막힌다.
+        docker-desktop)
+            # 실측 확인됨: Docker Desktop 내장 k8s는 docker build 이미지 저장소와 분리된 containerd를 쓰고,
+            # 모든 pull이 내부 registry-mirror를 강제 경유해서 로컬 레지스트리 우회도 막힌다.
             # → 로컬 이미지가 절대 뜨지 않으니(ErrImageNeverPull) 여기서 진행하지 않는다.
             echo "Docker Desktop 내장 Kubernetes는 로컬 빌드 이미지를 못 읽습니다(k8s/README.md 'Docker Desktop' 절 참고)." >&2
             echo "kind를 쓰세요: kind create cluster --name apiverse --config k8s/kind-config.yaml" >&2
@@ -29,9 +37,9 @@ check_context() {
         orbstack)
             # OrbStack의 k8s는 OrbStack 도커 엔진과 같은 이미지 저장소를 공유한다(공식 문서 기준).
             # docker-desktop과 달리 별도 containerd로 분리돼 있지 않아 build만 하면 바로 보이므로 로드 단계 불필요.
-            IMAGE_LOAD=none; INGRESS_PORT=80                                                                      ;;
+            IMAGE_LOAD=none; INGRESS_PORT=80 ;;
         *)
-            echo "알 수 없는 컨텍스트($ctx)입니다. kind/minikube/orbstack 중 하나로 전환 후 다시 실행>하세요." >&2
+            echo "알 수 없는 컨텍스트($ctx)입니다. kind/minikube/orbstack 중 하나로 전환 후 다시 실행하세요." >&2
             exit 1
             ;;
     esac
@@ -49,21 +57,22 @@ pull_latest() {
 
 build_images() {
     log "이미지 빌드"
-    docker build -f "$REPO_ROOT/gateway/Dockerfile"  -t apiverse/gateway:local  "$REPO_ROOT"
-    docker build -f "$REPO_ROOT/admin/Dockerfile"    -t apiverse/admin:local   "$REPO_ROOT"
-    docker build -f "$REPO_ROOT/web/Dockerfile"      -t apiverse/web:local     "$REPO_ROOT/web"
-    docker build -f "$REPO_ROOT/console/Dockerfile"  -t apiverse/console:local "$REPO_ROOT/console"
+    docker build -f "$REPO_ROOT/gateway/Dockerfile"         -t apiverse/gateway:local         "$REPO_ROOT"
+    docker build -f "$REPO_ROOT/admin/Dockerfile"           -t apiverse/admin:local           "$REPO_ROOT"
+    docker build -f "$REPO_ROOT/event-consumer/Dockerfile"  -t apiverse/event-consumer:local  "$REPO_ROOT"
+    docker build -f "$REPO_ROOT/web/Dockerfile"             -t apiverse/web:local             "$REPO_ROOT/web"
+    docker build -f "$REPO_ROOT/console/Dockerfile"         -t apiverse/console:local         "$REPO_ROOT/console"
 }
 
 load_images() {
     case "$IMAGE_LOAD" in
         kind)
             log "kind 클러스터에 이미지 로드"
-            kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/web:local apiverse/console:local --name apiverse
+            kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/event-consumer:local apiverse/web:local apiverse/console:local --name apiverse
             ;;
         minikube)
             log "minikube에 이미지 로드"
-            for img in gateway admin web console; do
+            for img in gateway admin event-consumer web console; do
                 minikube image load "apiverse/$img:local"
             done
             ;;
@@ -103,13 +112,13 @@ apply_manifests() {
     kubectl apply -k "$REPO_ROOT/k8s/"
 
     # 이미지 태그가 항상 :local로 고정돼 있어 재빌드해도 Deployment spec 문자열이 바뀌지 않는다.
-    # apply만으로는 diff가 없어 새 ReplicaSet이 안 만들어지고 기존 Pod가 옛날 이미지로 계속 떠 있으므>로
+    # apply만으로는 diff가 없어 새 ReplicaSet이 안 만들어지고 기존 Pod가 옛날 이미지로 계속 떠 있으므로
     # 매 배포마다 강제로 rollout restart를 걸어 새로 로드된 이미지를 반영한다.
     log "이미지 갱신 반영을 위한 rollout restart"
-    kubectl -n "$NAMESPACE" rollout restart deployment gateway admin web console
+    kubectl -n "$NAMESPACE" rollout restart deployment gateway admin event-consumer web console
 
     log "롤아웃 대기"
-    for dep in postgres redis gateway admin web console; do
+    for dep in postgres redis kafka gateway admin event-consumer web console; do
         kubectl -n "$NAMESPACE" rollout status "deployment/$dep" --timeout=180s
     done
 }
@@ -186,11 +195,9 @@ do_down() {
         return
     fi
 
-    # namespace/postgres-pvc는 kustomization.yaml에 포함돼 있어 `kubectl delete -k`를 쓰면 같이 지워지
-고,
+    # namespace/postgres-pvc는 kustomization.yaml에 포함돼 있어 `kubectl delete -k`를 쓰면 같이 지워지고,
     # storageclass reclaimPolicy가 Delete라서 PVC 삭제 = 실데이터 삭제로 이어진다.
-    # 그래서 기본 down은 워크로드(deployment/service/ingress)만 지우고 namespace/PVC는 남겨서 데이터를
- 보존한다.
+    # 그래서 기본 down은 워크로드(deployment/service/ingress)만 지우고 namespace/PVC는 남겨서 데이터를 보존한다.
     log "리소스 삭제 (namespace/postgres-pvc는 보존 — 데이터 유지)"
     kubectl delete -n "$NAMESPACE" deployment --all --ignore-not-found
     kubectl delete -n "$NAMESPACE" service --all --ignore-not-found

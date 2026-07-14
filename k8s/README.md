@@ -48,16 +48,17 @@ kind create cluster --name apiverse --config k8s/kind-config.yaml
 저장소 루트에서 실행 (gateway/admin은 `core` 모듈에 의존하므로 빌드 컨텍스트가 루트여야 함):
 
 ```bash
-docker build -f gateway/Dockerfile  -t apiverse/gateway:local .
-docker build -f admin/Dockerfile    -t apiverse/admin:local   .
-docker build -f web/Dockerfile      -t apiverse/web:local     web
-docker build -f console/Dockerfile  -t apiverse/console:local console
+docker build -f gateway/Dockerfile         -t apiverse/gateway:local         .
+docker build -f admin/Dockerfile           -t apiverse/admin:local           .
+docker build -f event-consumer/Dockerfile  -t apiverse/event-consumer:local  .
+docker build -f web/Dockerfile             -t apiverse/web:local             web
+docker build -f console/Dockerfile         -t apiverse/console:local         console
 ```
 
 ## 2. kind 클러스터에 이미지 로드
 
 ```bash
-kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/web:local apiverse/console:local --name apiverse
+kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/event-consumer:local apiverse/web:local apiverse/console:local --name apiverse
 ```
 
 ## 3. ingress-nginx 설치 (최초 1회만)
@@ -135,6 +136,12 @@ curl http://apiverse.local/api/products
   가로채서 실행되지 않는다.
 - admin.apiverse.local의 `/api/**`도 마찬가지로 `admin` Service(8090)로 직접 라우팅.
 - postgres는 PVC(`postgres-pvc`, 1Gi)로 데이터 보존, redis는 레이트리미터 캐시 용도라 휘발성(PVC 없음).
+- billing_logs는 gateway → Kafka(`kafka` Service, 9092) → `event-consumer`가 배치로 모아 DB에 적재하는 구조로 바뀌었다.
+  kafka는 단일 노드 KRaft 구성이고 PVC(`kafka-pvc`, 2Gi)로 토픽 데이터를 보존한다. gateway는 Kafka 발행 실패 시
+  (`KafkaProducerConfig`의 `REQUEST_TIMEOUT_MS`/`MAX_BLOCK_MS` 3초 이내) `ProxyService`가 R2DBC 직접 저장으로
+  자동 폴백하므로 kafka/event-consumer가 잠깐 죽어도 로그 유실은 없다. event-consumer는
+  `spring.main.web-application-type=none`이라 HTTP 포트가 없어 Service/Ingress가 없고, gateway/admin과 마찬가지로
+  롤아웃 시 재시작 대상에 포함된다(`deploy.sh`의 rollout restart 목록 참고).
 - `TRUST_FORWARDED_HEADERS=true`가 gateway에 설정되어 있음 — nginx-ingress가 유일한 신뢰 프록시 홉이라는 전제.
   만약 이중 프록시(예: 클라우드 LB + nginx-ingress)를 추가로 두게 되면 `ProxyService.resolveClientIp`의
   홉 처리 로직을 다시 봐야 함.
