@@ -37,8 +37,7 @@ check_context() {
         orbstack)
             # OrbStack의 k8s는 OrbStack 도커 엔진과 같은 이미지 저장소를 공유한다(공식 문서 기준).
             # docker-desktop과 달리 별도 containerd로 분리돼 있지 않아 build만 하면 바로 보이므로 로드 단계 불필요.
-            IMAGE_LOAD=none; INGRESS_PORT=80
-            ;;
+            IMAGE_LOAD=none; INGRESS_PORT=80 ;;
         *)
             echo "알 수 없는 컨텍스트($ctx)입니다. kind/minikube/orbstack 중 하나로 전환 후 다시 실행하세요." >&2
             exit 1
@@ -46,23 +45,35 @@ check_context() {
     esac
 }
 
+pull_latest() {
+    log "원격 최신 코드 pull"
+    if [[ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]]; then
+        echo "커밋되지 않은 로컬 변경사항이 있어 git pull을 건너뜁니다. 정리 후 다시 실행하세요." >&2
+        git -C "$REPO_ROOT" status --short
+        exit 1
+    fi
+    git -C "$REPO_ROOT" pull --ff-only
+}
+
 build_images() {
     log "이미지 빌드"
-    docker build -f "$REPO_ROOT/gateway/Dockerfile"  -t apiverse/gateway:local  "$REPO_ROOT"
-    docker build -f "$REPO_ROOT/admin/Dockerfile"    -t apiverse/admin:local   "$REPO_ROOT"
-    docker build -f "$REPO_ROOT/web/Dockerfile"      -t apiverse/web:local     "$REPO_ROOT/web"
-    docker build -f "$REPO_ROOT/console/Dockerfile"  -t apiverse/console:local "$REPO_ROOT/console"
+    docker build -f "$REPO_ROOT/gateway/Dockerfile"         -t apiverse/gateway:local         "$REPO_ROOT"
+    docker build -f "$REPO_ROOT/admin/Dockerfile"           -t apiverse/admin:local           "$REPO_ROOT"
+    docker build -f "$REPO_ROOT/event-consumer/Dockerfile"  -t apiverse/event-consumer:local  "$REPO_ROOT"
+    docker build -f "$REPO_ROOT/batch/Dockerfile"           -t apiverse/batch:local           "$REPO_ROOT"
+    docker build -f "$REPO_ROOT/web/Dockerfile"             -t apiverse/web:local             "$REPO_ROOT/web"
+    docker build -f "$REPO_ROOT/console/Dockerfile"         -t apiverse/console:local         "$REPO_ROOT/console"
 }
 
 load_images() {
     case "$IMAGE_LOAD" in
         kind)
             log "kind 클러스터에 이미지 로드"
-            kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/web:local apiverse/console:local --name apiverse
+            kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/event-consumer:local apiverse/batch:local apiverse/web:local apiverse/console:local --name apiverse
             ;;
         minikube)
             log "minikube에 이미지 로드"
-            for img in gateway admin web console; do
+            for img in gateway admin event-consumer batch web console; do
                 minikube image load "apiverse/$img:local"
             done
             ;;
@@ -101,8 +112,14 @@ apply_manifests() {
     log "매니페스트 적용 (kustomize)"
     kubectl apply -k "$REPO_ROOT/k8s/"
 
+    # 이미지 태그가 항상 :local로 고정돼 있어 재빌드해도 Deployment spec 문자열이 바뀌지 않는다.
+    # apply만으로는 diff가 없어 새 ReplicaSet이 안 만들어지고 기존 Pod가 옛날 이미지로 계속 떠 있으므로
+    # 매 배포마다 강제로 rollout restart를 걸어 새로 로드된 이미지를 반영한다.
+    log "이미지 갱신 반영을 위한 rollout restart"
+    kubectl -n "$NAMESPACE" rollout restart deployment gateway admin event-consumer web console
+
     log "롤아웃 대기"
-    for dep in postgres redis gateway admin web console; do
+    for dep in postgres redis kafka gateway admin event-consumer web console; do
         kubectl -n "$NAMESPACE" rollout status "deployment/$dep" --timeout=180s
     done
 }
@@ -124,7 +141,7 @@ print_verify_hint() {
     local suffix=""
     [[ "$INGRESS_PORT" != "80" ]] && suffix=":$INGRESS_PORT"
     echo "  curl http://apiverse.hypepia.com${suffix}/api/products"
-    echo "  curl http://admverse.hypepia.com${suffix}/api/admin/products   # 401/403이면 정상(인증 필요)"
+    echo "  curl http://admverse.hypepia.com${suffix}/api/admin/products   # 401/403이면 정상(인증 필>요)"
 }
 
 start_postgres_port_forward() {
@@ -159,6 +176,7 @@ stop_postgres_port_forward() {
 
 do_up() {
     check_context
+    pull_latest
     build_images
     load_images
     install_ingress_nginx

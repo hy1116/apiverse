@@ -18,10 +18,6 @@ public interface ApiKeyRepository extends ReactiveCrudRepository<ApiKey, Long> {
     @Query("UPDATE api_keys SET used_quota = used_quota + 1 WHERE id = :id")
     Mono<Void> incrementUsedQuota(Long id);
 
-    @Modifying
-    @Query("UPDATE api_keys SET used_quota = 0")
-    Mono<Void> resetAllUsedQuota();
-
     // 월 쿼터 사용률 Top N — monthly_quota=-1(무제한) 제외, used/monthly 비율 내림차순
     @Query("""
         SELECT ak.api_key_value AS api_key_value, u.email AS user_email, p.name AS product_name,

@@ -1,0 +1,13 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+// core는 R2DBC 전용이라 의존하지 않는다 — Spring Batch는 JobRepository/chunk 트랜잭션에 JDBC가 필요하다.
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-batch-jdbc'
+    runtimeOnly 'org.postgresql:postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.batch:spring-batch-test'
+    // Docker 없이 실제 PostgreSQL 바이너리로 통합 테스트 (ON CONFLICT, FILTER 등 PG 전용 SQL 검증)
+    testImplementation 'io.zonky.test:embedded-postgres:2.1.0'
+}

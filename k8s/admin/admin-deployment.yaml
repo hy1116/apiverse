@@ -48,6 +48,9 @@ spec:
                 secretKeyRef:
                   name: apiverse-secrets
                   key: jwt-secret
+            # 앞단 nginx-ingress가 유일하게 신뢰하는 1홉 리버스 프록시이므로 활성화 (접근 로그 IP 정확도)
+            - name: TRUST_FORWARDED_HEADERS
+              value: "true"
             - name: LOG_PATH
               value: /var/log/apiverse
           volumeMounts:

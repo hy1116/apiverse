@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .addFilterBefore(new JwtWebFilter(jwtUtils), SecurityWebFiltersOrder.AUTHENTICATION)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/auth/**").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/health").permitAll()  // actuator health (DB/Redis 포함, 상세 비노출)
                         .pathMatchers(HttpMethod.GET, "/api/products/pending", "/api/products/my").authenticated()
                         .pathMatchers(HttpMethod.GET, "/api/products", "/api/products/*", "/api/products/by-code/*").permitAll()
                         .pathMatchers("/api/usage/**").authenticated()

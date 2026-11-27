@@ -24,8 +24,8 @@ spec:
             - sh
             - -c
             - |
-              until nc -z postgres 5432 && nc -z redis 6379; do
-                echo "waiting for postgres/redis..."; sleep 2;
+              until nc -z postgres 5432 && nc -z redis 6379 && nc -z kafka 9092; do
+                echo "waiting for postgres/redis/kafka..."; sleep 2;
               done
       containers:
         - name: gateway
@@ -47,6 +47,8 @@ spec:
               value: redis
             - name: REDIS_PORT
               value: "6379"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka:9092
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:

@@ -94,3 +94,38 @@ CREATE TABLE IF NOT EXISTS blocked_ips (
     reason      VARCHAR(255),
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- gateway/admin 앱 REST API(auth/product/key/inquiry 등) 전체 접근 로그. source로 앱 구분.
+-- /gateway/** 프록시 호출은 billing_logs에 api_key_value 기준으로 별도 기록되므로 여기서는 제외한다.
+CREATE TABLE IF NOT EXISTS access_logs (
+    id              BIGSERIAL PRIMARY KEY,
+    source          VARCHAR(20) NOT NULL DEFAULT 'GATEWAY', -- 'GATEWAY' | 'ADMIN'
+    user_id         BIGINT REFERENCES users(id),
+    request_path    VARCHAR(255) NOT NULL,
+    http_method     VARCHAR(10) NOT NULL,
+    response_status INT NOT NULL,
+    client_ip       VARCHAR(50),
+    request_time    TIMESTAMP NOT NULL
+);
+
+-- source 컬럼 추가 이전 설치본 대비
+ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'GATEWAY';
+
+CREATE INDEX IF NOT EXISTS idx_access_logs_request_time ON access_logs(request_time);
+CREATE INDEX IF NOT EXISTS idx_access_logs_source_request_time ON access_logs(source, request_time);
+
+-- 키별 월 사용량 스냅샷 — batch 모듈 monthlySettlementJob이 매월 1일 지난달분을 기록 (used_quota 초기화 직전 값)
+CREATE TABLE IF NOT EXISTS api_key_monthly_usage (
+    id              BIGSERIAL PRIMARY KEY,
+    usage_month     DATE NOT NULL,                       -- 해당 월 1일
+    api_key_id      BIGINT NOT NULL REFERENCES api_keys(id),
+    user_id         BIGINT REFERENCES users(id),
+    api_product_id  BIGINT REFERENCES api_products(id),
+    monthly_quota   INT NOT NULL,                        -- -1 = 무제한
+    used_quota      INT NOT NULL,                        -- api_keys.used_quota 스냅샷
+    over_quota      INT NOT NULL DEFAULT 0,              -- 쿼터 초과분
+    request_count   BIGINT NOT NULL,                     -- billing_logs 기준 전체 호출 수
+    error_count     BIGINT NOT NULL,                     -- billing_logs 기준 5xx 수
+    settled_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT api_key_monthly_usage_month_key_unique UNIQUE (usage_month, api_key_id)
+);

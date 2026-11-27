@@ -1,0 +1,52 @@
+# 매월 1일 00:00(KST) 지난달 정산 + used_quota 초기화. 앱이 종료 코드로 성공/실패를 알린다.
+# 수동 실행: kubectl -n apiverse create job --from=cronjob/monthly-settlement monthly-settlement-manual
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: monthly-settlement
+  namespace: apiverse
+spec:
+  schedule: "0 0 1 * *"
+  timeZone: Asia/Seoul
+  concurrencyPolicy: Forbid       # 같은 달 Job이 겹쳐 돌지 않도록
+  startingDeadlineSeconds: 3600   # 클러스터가 잠깐 내려가 있었어도 1시간 안이면 늦게라도 실행
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2             # 재시도 시 Spring Batch가 실패한 스텝부터 재시작한다
+      template:
+        spec:
+          restartPolicy: Never
+          enableServiceLinks: false
+          containers:
+            - name: batch
+              image: apiverse/batch:local
+              imagePullPolicy: Never  # 로컬 kind/minikube에 미리 로드해둔 이미지만 사용
+              env:
+                - name: DB_JDBC_URL
+                  value: jdbc:postgresql://postgres:5432/apiverse
+                - name: DB_USERNAME
+                  value: postgres
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: apiverse-secrets
+                      key: postgres-password
+                - name: LOG_PATH
+                  value: /var/log/apiverse
+              volumeMounts:
+                - name: logs
+                  mountPath: /var/log/apiverse
+                  subPath: batch
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: logs
+              persistentVolumeClaim:
+                claimName: apiverse-logs-pvc
