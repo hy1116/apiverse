@@ -15,6 +15,7 @@ resources:
   - gateway/gateway-deployment.yaml
   - gateway/gateway-service.yaml
   - event-consumer/event-consumer-deployment.yaml
+  - batch/monthly-settlement-cronjob.yaml
   - admin/admin-deployment.yaml
   - admin/admin-service.yaml
   - web/web-deployment.yaml

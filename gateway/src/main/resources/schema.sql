@@ -113,3 +113,19 @@ ALTER TABLE access_logs ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEF
 
 CREATE INDEX IF NOT EXISTS idx_access_logs_request_time ON access_logs(request_time);
 CREATE INDEX IF NOT EXISTS idx_access_logs_source_request_time ON access_logs(source, request_time);
+
+-- 키별 월 사용량 스냅샷 — batch 모듈 monthlySettlementJob이 매월 1일 지난달분을 기록 (used_quota 초기화 직전 값)
+CREATE TABLE IF NOT EXISTS api_key_monthly_usage (
+    id              BIGSERIAL PRIMARY KEY,
+    usage_month     DATE NOT NULL,                       -- 해당 월 1일
+    api_key_id      BIGINT NOT NULL REFERENCES api_keys(id),
+    user_id         BIGINT REFERENCES users(id),
+    api_product_id  BIGINT REFERENCES api_products(id),
+    monthly_quota   INT NOT NULL,                        -- -1 = 무제한
+    used_quota      INT NOT NULL,                        -- api_keys.used_quota 스냅샷
+    over_quota      INT NOT NULL DEFAULT 0,              -- 쿼터 초과분
+    request_count   BIGINT NOT NULL,                     -- billing_logs 기준 전체 호출 수
+    error_count     BIGINT NOT NULL,                     -- billing_logs 기준 5xx 수
+    settled_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT api_key_monthly_usage_month_key_unique UNIQUE (usage_month, api_key_id)
+);

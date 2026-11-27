@@ -50,6 +50,9 @@ spec:
               value: "3"
             - name: CLUSTER_ID
               value: apiverse-k8s-kraft-cluster
+            # 기본 힙(-Xmx1G)이면 limit 1Gi에서 OOMKilled 위험 → 힙을 고정하고 limit도 줄인다.
+            - name: KAFKA_HEAP_OPTS
+              value: "-Xms256m -Xmx384m"
           volumeMounts:
             - name: data
               mountPath: /var/lib/kafka/data
@@ -67,10 +70,10 @@ spec:
           resources:
             requests:
               cpu: 250m
-              memory: 512Mi
+              memory: 384Mi
             limits:
               cpu: 1
-              memory: 1Gi
+              memory: 640Mi
       volumes:
         - name: data
           persistentVolumeClaim:

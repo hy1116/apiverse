@@ -13,9 +13,10 @@ gateway/
 ├── key/        ApiKeyController
 ├── usage/      UsageController
 ├── inquiry/    InquiryController, InquiryRequest, AnswerRequest
-├── proxy/      ProxyController, ProxyService, RateLimiter, ProxyConfig
-└── scheduler/  QuotaResetScheduler
+└── proxy/      ProxyController, ProxyService, RateLimiter, ProxyConfig
 ```
+
+월별 `used_quota` 초기화는 gateway가 아닌 `batch` 모듈의 `monthlySettlementJob`이 담당한다 (pod 수만큼 중복 실행되지 않도록).
 
 요청 DTO(`XxxRequest`)는 해당 기능 패키지에 위치. core에 두지 않음 (core가 HTTP에 의존하면 안 됨).
 

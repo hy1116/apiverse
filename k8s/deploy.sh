@@ -60,6 +60,7 @@ build_images() {
     docker build -f "$REPO_ROOT/gateway/Dockerfile"         -t apiverse/gateway:local         "$REPO_ROOT"
     docker build -f "$REPO_ROOT/admin/Dockerfile"           -t apiverse/admin:local           "$REPO_ROOT"
     docker build -f "$REPO_ROOT/event-consumer/Dockerfile"  -t apiverse/event-consumer:local  "$REPO_ROOT"
+    docker build -f "$REPO_ROOT/batch/Dockerfile"           -t apiverse/batch:local           "$REPO_ROOT"
     docker build -f "$REPO_ROOT/web/Dockerfile"             -t apiverse/web:local             "$REPO_ROOT/web"
     docker build -f "$REPO_ROOT/console/Dockerfile"         -t apiverse/console:local         "$REPO_ROOT/console"
 }
@@ -68,11 +69,11 @@ load_images() {
     case "$IMAGE_LOAD" in
         kind)
             log "kind 클러스터에 이미지 로드"
-            kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/event-consumer:local apiverse/web:local apiverse/console:local --name apiverse
+            kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/event-consumer:local apiverse/batch:local apiverse/web:local apiverse/console:local --name apiverse
             ;;
         minikube)
             log "minikube에 이미지 로드"
-            for img in gateway admin event-consumer web console; do
+            for img in gateway admin event-consumer batch web console; do
                 minikube image load "apiverse/$img:local"
             done
             ;;

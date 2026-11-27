@@ -51,6 +51,7 @@ kind create cluster --name apiverse --config k8s/kind-config.yaml
 docker build -f gateway/Dockerfile         -t apiverse/gateway:local         .
 docker build -f admin/Dockerfile           -t apiverse/admin:local           .
 docker build -f event-consumer/Dockerfile  -t apiverse/event-consumer:local  .
+docker build -f batch/Dockerfile           -t apiverse/batch:local           .
 docker build -f web/Dockerfile             -t apiverse/web:local             web
 docker build -f console/Dockerfile         -t apiverse/console:local         console
 ```
@@ -58,7 +59,7 @@ docker build -f console/Dockerfile         -t apiverse/console:local         con
 ## 2. kind 클러스터에 이미지 로드
 
 ```bash
-kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/event-consumer:local apiverse/web:local apiverse/console:local --name apiverse
+kind load docker-image apiverse/gateway:local apiverse/admin:local apiverse/event-consumer:local apiverse/batch:local apiverse/web:local apiverse/console:local --name apiverse
 ```
 
 ## 3. ingress-nginx 설치 (최초 1회만)
